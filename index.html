@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>html{color-scheme:light}body{margin:0;font-family:system-ui,sans-serif;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>AI 체험 뽑기판</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&family=Gowun+Dodum&display=swap">
+<style>
+/* Layout: 문방구 뽑기판 — 크래프트지 벽 위에 빨간 뽑기판(가운데), 왼쪽 방문 리스트, 오른쪽 참가자 체험 리스트 */
+:root{
+  --wall:#ead6ae; --wall-dot:#dcc395;
+  --board:#d42a2f; --board-dark:#9e1b20; --board-rim:#ffd23f;
+  --paper:#fff6df; --ink:#2b1a12; --ink-soft:#6b5444;
+  --pink:#ff8fb1; --yellow:#ffd84d; --mint:#6fd3b8; --sky:#7cc4f2; --lilac:#c9a6f5;
+  --line:#e2c99a; --ok:#1f8a5b; --warn:#c2410c;
+  --f-display:"Black Han Sans","Jua",system-ui,sans-serif;
+  --f-round:"Jua","Gowun Dodum",system-ui,sans-serif;
+  --f-body:"Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  color-scheme:light;
+}
+html,body{height:100%}
+body{
+  background-color:var(--wall);
+  background-image:radial-gradient(var(--wall-dot) 1.2px,transparent 1.3px);
+  background-size:14px 14px;
+  color:var(--ink);font-family:var(--f-body);font-size:15px;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.wrap{padding-inline:16px;padding-block:12px 20px;max-width:1680px;margin:0 auto;display:flex;flex-direction:column;gap:12px;min-height:100%}
+
+/* header */
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.brand h1{margin:0;font-family:var(--f-display);font-weight:400;font-size:clamp(24px,2.6vw,36px);letter-spacing:.5px;color:var(--board);text-shadow:2px 2px 0 var(--board-rim),3px 3px 0 var(--ink)}
+.brand span{font-family:var(--f-round);color:var(--ink-soft);font-size:15px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+.chip{font-family:var(--f-round);background:var(--paper);border:2px solid var(--ink);border-radius:999px;padding:4px 12px;font-size:14px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.chip b{color:var(--board)}
+.btn{font-family:var(--f-round);background:var(--paper);border:2px solid var(--ink);border-radius:10px;padding:7px 14px;box-shadow:3px 3px 0 var(--ink);transition:transform .08s,box-shadow .08s}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+.bfoot .btn{color:var(--ink)}
+.btn.red,.bfoot .btn.red{background:var(--board);color:#fff}
+.btn.yel{background:var(--yellow)}
+.btn.sm{padding:4px 10px;font-size:13px;box-shadow:2px 2px 0 var(--ink)}
+.status{font-size:13px;color:var(--ink-soft)}
+
+/* 3 columns */
+.stage{display:grid;grid-template-columns:minmax(240px,300px) minmax(0,1fr) minmax(280px,360px);gap:14px;flex:1;min-height:0}
+.panel{background:var(--paper);border:2px solid var(--ink);border-radius:14px;box-shadow:4px 4px 0 var(--ink);display:flex;flex-direction:column;min-width:0;min-height:0;max-height:calc(100vh - 110px)}
+.panel>header{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:2px dashed var(--line)}
+.panel>header h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:20px}
+.panel>header .sp{margin-left:auto}
+.panel .body{padding:10px 12px;overflow:auto;min-height:0;flex:1}
+.search{width:100%;padding:7px 10px;border:2px solid var(--ink);border-radius:8px;background:#fff;font:inherit}
+
+.vlist{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.vrow{display:flex;gap:4px;align-items:stretch}
+.vrow .vitem{flex:1;min-width:0}
+.vact{display:flex;flex-direction:column;gap:3px}
+.vact button{border:2px solid var(--ink);border-radius:6px;background:#fff;font-family:var(--f-round);font-size:12px;padding:2px 7px;flex:1}
+.vact button.del{color:var(--board)}
+.vitem{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:8px;border:2px solid transparent;border-radius:10px;background:#fff;text-align:left;width:100%}
+.full{grid-column:1/-1;background:var(--paper);border:3px dashed var(--ink);border-radius:12px;padding:18px;text-align:center;font-family:var(--f-round);font-size:18px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.vitem:hover{border-color:var(--line)}
+.vitem.on{border-color:var(--board);background:#fff0ee}
+.lv{font-family:var(--f-round);font-size:13px;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--ink)}
+.lv.k{background:var(--pink)} .lv.e{background:var(--yellow)} .lv.m{background:var(--sky)}
+.vname{font-family:var(--f-round);font-size:16px;line-height:1.15}
+.vsub{font-size:12px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vmeta{text-align:right;font-size:12px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.vmeta b{display:block;font-family:var(--f-round);color:var(--board);font-size:14px;font-weight:400}
+.vcnt{display:inline-block;margin:2px 0;background:var(--yellow);border:1.5px solid var(--ink);border-radius:999px;padding:0 7px;font-family:var(--f-round);color:var(--ink);font-size:12px}
+.stats{background:var(--paper);border:2px solid var(--ink);border-radius:14px;box-shadow:4px 4px 0 var(--ink);padding:12px 14px}
+.stats header{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;border-bottom:2px dashed var(--line);padding-bottom:8px;margin-bottom:10px}
+.stats h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:20px}
+.stats header span{font-size:13px;color:var(--ink-soft)}
+.srows{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:8px 22px}
+.srow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;align-items:center;font-variant-numeric:tabular-nums}
+.srow .nm{font-family:var(--f-round);font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srow .num{font-family:var(--f-round);font-size:15px;text-align:right}
+.srow .num b{color:var(--board);font-weight:400;font-size:18px}
+.srow .num small{color:var(--ink-soft);font-size:12px}
+.sbar{grid-column:1/-1;height:12px;border:2px solid var(--ink);border-radius:999px;background:#fff;overflow:hidden;position:relative}
+.sbar i{position:absolute;inset:0 auto 0 0;background:var(--yellow)}
+.sbar i.dn{background:var(--mint)}
+.slv{grid-column:1/-1;font-size:12px;color:var(--ink-soft)}
+.slegend{display:flex;gap:12px;font-size:12px;color:var(--ink-soft);margin-left:auto}
+.slegend i{display:inline-block;width:12px;height:10px;border:1.5px solid var(--ink);border-radius:3px;vertical-align:-1px;margin-right:4px}
+.empty{border:2px dashed var(--line);border-radius:10px;padding:16px;text-align:center;color:var(--ink-soft);font-size:14px;line-height:1.6}
+
+/* board */
+.boardwrap{min-width:0;display:flex;flex-direction:column;gap:10px}
+.board{position:relative;background:var(--board);border:4px solid var(--ink);border-radius:18px;box-shadow:6px 6px 0 var(--ink);padding:14px;display:flex;flex-direction:column;gap:12px}
+.board::before{content:"";position:absolute;inset:6px;border:3px dashed var(--board-rim);border-radius:12px;pointer-events:none}
+.bhead{position:relative;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.btitle{font-family:var(--f-display);color:var(--board-rim);font-size:clamp(26px,3.4vw,46px);line-height:1;text-shadow:3px 3px 0 var(--ink);letter-spacing:1px}
+.btitle small{display:block;font-family:var(--f-round);font-size:15px;color:#fff;text-shadow:none;letter-spacing:0;margin-top:6px}
+.price{background:var(--board-rim);color:var(--ink);border:3px solid var(--ink);border-radius:50%;width:84px;height:84px;display:grid;place-items:center;text-align:center;font-family:var(--f-display);font-size:15px;line-height:1.05;transform:rotate(-10deg);box-shadow:3px 3px 0 var(--ink)}
+.price b{font-size:24px;font-weight:400;display:block}
+.prizes{position:relative;display:flex;gap:8px;flex-wrap:wrap}
+.prize{background:var(--paper);border:2px solid var(--ink);border-radius:8px;padding:4px 10px 4px 4px;display:flex;align-items:center;gap:6px;font-family:var(--f-round);font-size:14px}
+.prize .rk{background:var(--ink);color:var(--board-rim);border-radius:5px;padding:1px 6px;font-size:12px}
+.prize .left{color:var(--ink-soft);font-size:12px;font-variant-numeric:tabular-nums}
+.prize.out{opacity:.45;text-decoration:line-through}
+.current{position:relative;background:var(--ink);color:var(--paper);border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-family:var(--f-round);font-size:16px}
+.current .who{color:var(--board-rim)}
+.grid{position:relative;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px}
+.tk{position:relative;aspect-ratio:1/1.12;max-width:100%;border:2px solid var(--ink);border-radius:6px;background:var(--c,var(--pink));box-shadow:2px 3px 0 rgba(0,0,0,.35);display:grid;place-items:center;font-family:var(--f-display);font-size:clamp(16px,1.8vw,26px);color:var(--ink);overflow:hidden;transition:transform .12s}
+.tk::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(135deg,rgba(255,255,255,.28) 0 4px,transparent 4px 9px)}
+.tk::after{content:"";position:absolute;right:-1px;top:-1px;width:30%;aspect-ratio:1;background:linear-gradient(225deg,var(--board) 50%,rgba(255,255,255,.85) 50%);border-left:2px solid var(--ink);border-bottom:2px solid var(--ink);border-bottom-left-radius:4px}
+.tk span{position:relative;background:rgba(255,255,255,.75);border-radius:50%;width:58%;aspect-ratio:1;display:grid;place-items:center;border:2px solid var(--ink)}
+.tk:not(.open):hover{transform:translateY(-3px) rotate(-2deg)}
+.tk.open{background:#f3e9d3;color:var(--ink-soft);box-shadow:none;border-style:dashed;cursor:default;font-family:var(--f-round);font-size:11px;padding:3px;text-align:center;line-height:1.15}
+.tk.open::before{background:none}
+.tk.open::after{display:none}
+.tk.open em{font-style:normal;position:relative;display:block}
+.tk.open em.n{font-size:13px;color:var(--board)}
+.bfoot{position:relative;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;color:#fff;font-family:var(--f-round);font-size:14px}
+
+/* right panel */
+.pcard{border:2px solid var(--ink);border-radius:12px;padding:12px;background:#fff;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center}
+.pcard .lv{width:46px;height:46px;font-size:18px;grid-row:span 2}
+.pcard .pn{font-family:var(--f-display);font-size:26px;line-height:1}
+.pcard .ps{font-size:14px;color:var(--ink-soft)}
+.pcard dl{grid-column:1/-1;margin:8px 0 0;display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:13px}
+.pcard dt{color:var(--ink-soft)} .pcard dd{margin:0;font-variant-numeric:tabular-nums}
+.sec{font-family:var(--f-display);font-size:17px;margin:14px 0 6px;display:flex;align-items:center;gap:8px}
+.sec .cnt{font-family:var(--f-round);background:var(--board);color:#fff;border-radius:999px;padding:0 9px;font-size:13px}
+.dlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
+.ditem{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;background:#fff;border:2px solid var(--ink);border-radius:10px;padding:8px 10px}
+.ditem .no{font-family:var(--f-display);font-size:18px;width:38px;height:42px;display:grid;place-items:center;border:2px solid var(--ink);border-radius:5px;background:var(--c,var(--yellow))}
+.ditem .ex{font-family:var(--f-round);font-size:16px;line-height:1.2}
+.ditem .gf{font-size:13px;color:var(--ink-soft)}
+.ditem.done{opacity:.6}
+.ditem.done .ex{text-decoration:line-through}
+.chk{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--ink-soft);background:none;border:0;padding:0}
+.chk i{width:26px;height:26px;border:2px solid var(--ink);border-radius:6px;display:grid;place-items:center;font-style:normal;font-family:var(--f-display);background:#fff}
+.ditem.done .chk i{background:var(--ok);color:#fff}
+button.chk{cursor:pointer;min-width:44px;min-height:44px;justify-content:center}
+@media (max-width:819px){.chk i{width:32px;height:32px;font-size:18px}}
+
+/* overlay & modals */
+.ov{position:fixed;inset:0;background:rgba(43,26,18,.62);display:grid;place-items:center;padding:16px;z-index:50}
+.modal{background:var(--paper);border:3px solid var(--ink);border-radius:16px;box-shadow:6px 6px 0 var(--ink);width:min(560px,100%);max-height:calc(100vh - 32px);overflow:auto;padding:18px}
+.modal h3{margin:0 0 12px;font-family:var(--f-display);font-weight:400;font-size:24px}
+.modal .row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}
+label.f{display:flex;flex-direction:column;gap:5px;font-family:var(--f-round);font-size:15px;margin-bottom:12px}
+.f select,.f input,.inp{padding:10px;border:2px solid var(--ink);border-radius:10px;background:#fff;font:inherit;font-size:16px;width:100%}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.seg button{border:2px solid var(--ink);border-radius:10px;background:#fff;padding:12px 6px;font-family:var(--f-display);font-size:20px}
+.seg button[aria-pressed="true"]{background:var(--board);color:#fff;box-shadow:inset 0 -4px 0 var(--board-dark)}
+.err{color:var(--warn);font-size:14px;min-height:20px}
+
+/* reveal */
+.reveal{position:relative;width:min(520px,92vw);perspective:1200px}
+.sheet{position:relative;background:var(--paper);border:3px solid var(--ink);border-radius:8px;box-shadow:8px 8px 0 var(--ink);padding:26px 22px 22px;text-align:center;
+  background-image:linear-gradient(transparent 31px,rgba(43,26,18,.08) 32px);background-size:100% 32px}
+.flap{position:absolute;left:-3px;right:-3px;height:calc(50% + 2px);background:var(--c,var(--pink));border:3px solid var(--ink);z-index:2;backface-visibility:hidden;display:grid;place-items:center;font-family:var(--f-display);font-size:64px}
+.flap.t{top:-3px;border-radius:8px 8px 0 0;transform-origin:top center;animation:flipT .9s .25s cubic-bezier(.5,0,.3,1) forwards}
+.flap.b{bottom:-3px;border-radius:0 0 8px 8px;transform-origin:bottom center;animation:flipB .9s .35s cubic-bezier(.5,0,.3,1) forwards}
+.flap.t::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(135deg,rgba(255,255,255,.3) 0 6px,transparent 6px 14px);border-radius:inherit}
+.flap.b::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(135deg,rgba(255,255,255,.3) 0 6px,transparent 6px 14px);border-radius:inherit}
+@keyframes flipT{to{transform:rotateX(178deg);opacity:0}}
+@keyframes flipB{to{transform:rotateX(-178deg);opacity:0}}
+.sheet .tno{font-family:var(--f-round);color:var(--ink-soft);font-size:15px}
+.sheet .stamp{display:inline-block;margin:10px 0 6px;font-family:var(--f-display);color:var(--board);border:4px solid var(--board);border-radius:10px;padding:2px 14px;font-size:22px;transform:rotate(-6deg)}
+.sheet .exl{font-family:var(--f-round);color:var(--ink-soft);font-size:14px;margin-top:8px}
+.sheet .exn{font-family:var(--f-display);font-size:clamp(28px,6vw,42px);line-height:1.15;text-wrap:balance;margin:2px 0 10px}
+.sheet .gift{display:inline-flex;align-items:center;gap:8px;background:var(--yellow);border:3px solid var(--ink);border-radius:12px;padding:8px 16px;font-family:var(--f-round);font-size:22px}
+.sheet .gift .rk{background:var(--ink);color:var(--board-rim);border-radius:6px;padding:0 8px;font-size:15px}
+.sheet .forwho{margin-top:12px;font-size:14px;color:var(--ink-soft)}
+.burst{position:absolute;inset:-40px;pointer-events:none;z-index:3}
+.burst i{position:absolute;left:50%;top:50%;width:10px;height:14px;border:2px solid var(--ink);border-radius:2px;opacity:0;animation:pop 1.1s .9s ease-out forwards}
+@keyframes pop{0%{opacity:1;transform:translate(-50%,-50%) rotate(0)}100%{opacity:0;transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y))) rotate(var(--r))}}
+@media (prefers-reduced-motion:reduce){.flap{animation:none!important;display:none}.burst{display:none}.tk{transition:none}}
+
+.qrbox{display:grid;place-items:center;gap:8px;text-align:center}
+.qr{background:#fff;padding:12px;border:3px solid var(--ink);border-radius:12px;display:inline-block;line-height:0}
+.qr img,.qr canvas{width:min(240px,62vw)!important;height:auto!important}
+.code{font-family:var(--f-display);font-size:40px;letter-spacing:6px;color:var(--board)}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);border-radius:999px;padding:9px 18px;font-family:var(--f-round);z-index:80;max-width:calc(100vw - 32px)}
+
+/* settings */
+.cfgt{width:100%;border-collapse:collapse;font-size:14px}
+.cfgt td{padding:3px}
+.cfgt input{width:100%;padding:6px;border:2px solid var(--ink);border-radius:6px;font:inherit;background:#fff}
+.cfgt input.num{width:64px}
+.tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.tabs button{border:2px solid var(--ink);border-radius:8px;background:#fff;padding:5px 12px;font-family:var(--f-round)}
+.tabs button[aria-pressed="true"]{background:var(--yellow)}
+
+/* mobile mode */
+.mob{max-width:520px;margin:0 auto;width:100%;display:flex;flex-direction:column;gap:12px}
+.mtabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.mtabs button{border:2px solid var(--ink);border-radius:10px;background:var(--paper);padding:10px 4px;font-family:var(--f-round);font-size:15px}
+.mtabs button[aria-pressed="true"]{background:var(--board);color:#fff}
+.mcard{background:var(--paper);border:2px solid var(--ink);border-radius:14px;box-shadow:4px 4px 0 var(--ink);padding:16px}
+.mcard h2{margin:0 0 12px;font-family:var(--f-display);font-weight:400;font-size:22px}
+.big{width:100%;padding:14px;font-size:19px}
+.stage.player{grid-template-columns:minmax(0,1fr) minmax(280px,380px)}
+.rolechip{font-family:var(--f-round);font-size:13px;border:2px solid var(--ink);border-radius:999px;padding:3px 10px;background:var(--mint)}
+.rolechip.admin{background:var(--yellow)}
+@media (max-width:1180px){.stage.admin{grid-template-columns:minmax(0,1fr) minmax(260px,320px)}.stage .left{grid-column:1/-1;max-height:none}.stage .left .body{max-height:240px}}
+@media (max-width:819px){
+  .wrap{padding-inline:12px}
+  .stage,.stage.admin,.stage.player{grid-template-columns:minmax(0,1fr)}
+  .panel{max-height:none}
+  .panel .body{overflow:visible}
+  .grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}
+  .tk{font-size:20px}
+  .board{padding:12px;border-width:3px;box-shadow:4px 4px 0 var(--ink)}
+  .btitle{font-size:28px}
+  .price{display:none}
+  .prize{font-size:13px}
+  .current{font-size:15px}
+  .chips{margin-left:0}
+  .srows{grid-template-columns:minmax(0,1fr)}
+  .brand h1{font-size:24px}
+  .brand span{font-size:13px}
+}
+</style>
+
+<div class="wrap" id="app">
+  <div class="top">
+    <div class="brand"><h1>AI 체험 뽑기판</h1><span>AI교육 선도학교 · 나주교육박람회</span></div>
+    <div class="chips" id="chips"></div>
+    <span class="rolechip" id="roleChip">체험자 화면</span>
+    <button class="btn sm" id="roleBtn" type="button" hidden>체험자 화면 보기</button>
+  </div>
+  <div id="view"></div>
+</div>
+<div id="layer"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<script>
+(function(){
+"use strict";
+/* ---------- 학교 목록 (나주교육지원청 관내 학교 기준) ---------- */
+const SCHOOLS={
+  k:["나주이화유치원","빛누리유치원","라온유치원","한아름유치원","다야유치원","도담유치원","빛그린유치원",
+     "나주북초등학교병설유치원","영산포초등학교병설유치원","반남초등학교병설유치원",
+     "까리따스성모유치원","동산유치원","한빛유치원","한별유치원"],
+  e:["나주초등학교","나주중앙초등학교","나주북초등학교","영산포초등학교","영강초등학교","세지초등학교","양산초등학교","왕곡초등학교",
+     "반남초등학교","공산초등학교","동강초등학교","다시초등학교","문평초등학교","노안초등학교","노안남초등학교","금천초등학교",
+     "산포초등학교","남평초등학교","다도초등학교","봉황초등학교","빛가람초등학교","한아름초등학교","라온초등학교","빛누리초등학교"],
+  m:["나주중학교","영산포여자중학교","나주금천중학교","나주다시중학교","나주공산중학교","남평중학교","남평중학교다도분교장","나주동강중학교",
+     "나주봉황중학교","나주문평중학교","나주반남중학교","노안중학교","빛가람중학교","매성중학교","금성중학교","영산중학교","세지중학교"]
+};
+SCHOOLS.k.sort((a,b)=>a.localeCompare(b,"ko"));SCHOOLS.e.sort((a,b)=>a.localeCompare(b,"ko"));SCHOOLS.m.sort((a,b)=>a.localeCompare(b,"ko"));
+const LEVEL={k:"유",e:"초",m:"중"}, LEVEL_FULL={k:"유치원",e:"초등학교",m:"중학교"};
+const GRADES={k:["5세반","6세반","7세반"],e:["1학년","2학년","3학년","4학년","5학년","6학년"],m:["1학년","2학년","3학년"]};
+const DEFAULT_CFG={
+  link:"https://claude.ai/artifact/TK8TYtKCC8XYwmpYQDWDwi",
+  tickets:40,
+  pin:"1234",
+  experiences:[
+    {name:"AI 간식 창고 해킹",w:1},{name:"찌릿! 찌릿! 근육 마법 챌린지",w:1},{name:"AI 날으는 위즈피쉬",w:1},
+    {name:"AI 마법안경",w:1},{name:"AI 자율주행 로봇",w:1},{name:"4족 보행 로봇",w:1},
+    {name:"AI 드럼",w:1},{name:"AI 윤리 OX 퀴즈",w:1}
+  ],
+  gifts:[
+    {rank:"대박",name:"접이식 키보드",w:2,stock:10},{rank:"1등",name:"AI 캐릭터 열쇠고리",w:6,stock:50},
+    {rank:"2등",name:"선도학교 볼펜",w:12,stock:120},{rank:"3등",name:"AI 스티커",w:25,stock:250},
+    {rank:"행운",name:"달콤 젤리",w:55,stock:600}
+  ]
+};
+/* 로그인 없이 연 기기용 저장소: claude.ai 공유 저장소와 같은 모양으로 이 기기(브라우저)에만 저장 */
+function localDB(){
+  const KEY="ppopgi.local.v1";let mem={};
+  try{const r=localStorage.getItem(KEY);if(r)mem=JSON.parse(r)||{}}catch(e){mem={}}
+  const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(mem))}catch(e){}};
+  const dl={},cl={};
+  const parent=p=>p.split("/").slice(0,-1).join("/");
+  const clone=o=>JSON.parse(JSON.stringify(o));
+  const meta={fromCache:false,hasPendingWrites:false};
+  const dsnap=p=>{const d=mem[p]?Object.freeze(clone(mem[p])):undefined;return{id:p.split("/").pop(),exists:!!d,data:()=>d,metadata:meta}};
+  const csnap=c=>{const docs=Object.keys(mem).filter(k=>parent(k)===c).sort().map(dsnap);return{docs,size:docs.length,empty:!docs.length,docChanges:()=>[],metadata:meta}};
+  const fireCol=c=>(cl[c]||[]).forEach(f=>f(csnap(c)));
+  const notify=p=>setTimeout(()=>{(dl[p]||[]).forEach(f=>f(dsnap(p)));fireCol(parent(p))},0);
+  const sub=(map,k,f,fn)=>{(map[k]=map[k]||new Set()).add(f);setTimeout(()=>f(fn(k)),0);return()=>map[k].delete(f)};
+  const doc=p=>({id:p.split("/").pop(),path:p,
+    get:async()=>dsnap(p),
+    set:async d=>{mem[p]=clone(d);save();notify(p)},
+    update:async d=>{if(!mem[p])throw{code:"invalid_argument",message:"없는 문서"};mem[p]={...mem[p],...clone(d)};save();notify(p)},
+    delete:async()=>{delete mem[p];save();notify(p)},
+    onSnapshot:f=>sub(dl,p,f,dsnap)});
+  const collection=c=>{const q={limit:()=>q,where:()=>q,orderBy:()=>q,get:async()=>csnap(c),onSnapshot:f=>sub(cl,c,f,csnap),
+    doc:id=>doc(c+"/"+(id||Math.random().toString(36).slice(2,10)))};return q};
+  /* 같은 기기에서 연 다른 창(관리자 창·체험자 창)과 동기화 */
+  window.addEventListener("storage",e=>{if(e.key!==KEY)return;try{mem=JSON.parse(e.newValue||"{}")||{}}catch(x){mem={}}
+    Object.keys(dl).forEach(p=>(dl[p]||[]).forEach(f=>f(dsnap(p))));Object.keys(cl).forEach(fireCol)});
+  return{doc,collection};
+}
+const TK_COLORS=["var(--pink)","var(--yellow)","var(--mint)","var(--sky)","var(--lilac)"];
+
+/* ---------- state ---------- */
+const S={db:null,user:null,canWrite:true,isAdmin:false,viewAs:ls("ppopgi.viewAs")||"admin",cfg:DEFAULT_CFG,visitors:[],draws:[],current:null,round:1,layout:null,
+  mode:null,sel:null,q:"",mtab:"reg",ready:false,lastReg:null,boardVer:0};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmtT=t=>{if(!t)return"-";const d=new Date(t);return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")};
+function toast(m){const el=document.createElement("div");el.className="toast";el.textContent=m;document.body.appendChild(el);setTimeout(()=>el.remove(),2600)}
+function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
+function ss(k,v){try{if(v===undefined)return sessionStorage.getItem(k);sessionStorage.setItem(k,v)}catch(e){return null}}
+
+/* mode */
+const savedMode=ls("ppopgi.mode");
+const isPhone=()=>window.innerWidth<820;
+S.mode=isPhone()?"mobile":"booth";
+const h0=(location.hash||"").replace("#","");
+S.regMode=h0==="reg";
+if(S.regMode)S.mode="mobile";
+S.me=ls("ppopgi.me")||null;          /* 이 휴대폰으로 등록한 체험자 */
+S.phoneView=S.me?(S.regMode?"done":"board"):"reg";
+/* 지금 뽑는 사람: 휴대폰은 본인, PC는 관리자가 고른 사람 */
+/* 체험자 화면(PC/태블릿)에서 현장 등록한 사람은 S.boothMe — 관리자가 새로 고르면 그 사람으로 바뀜 */
+const curCode=()=>S.mode==="mobile"?S.me:(isAdminView()?S.current:(S.boothMe||S.current));
+
+/* 관리자 = 이 뽑기판의 편집 권한(소유자·편집자). 그 외 계정은 모두 체험자 화면 */
+/* 모바일 화면은 관리자 계정이어도 항상 체험자 화면 */
+const isAdminView=()=>S.isAdmin&&S.viewAs!=="player"&&S.mode!=="mobile";
+
+/* ---------- derived ---------- */
+const vByCode=c=>S.visitors.find(v=>v.code===c);
+/* 참가번호 = 등록(체험) 순서. 저장된 no가 없으면 등록 시각 순으로 매김 */
+function vNo(v){if(v&&v.no)return v.no;const s=[...S.visitors].sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));return s.indexOf(v)+1}
+function nextNo(){return S.visitors.reduce((m,v)=>Math.max(m,vNo(v)),0)+1}
+function roundDraws(){return S.draws.filter(d=>d.round===S.round)}
+function giftUsed(name){return S.draws.filter(d=>d.gift===name).length}
+function giftsLeft(){return S.cfg.gifts.map(g=>({...g,left:Math.max(0,(+g.stock||0)-giftUsed(g.name))}))}
+function wpick(arr){const tot=arr.reduce((a,b)=>a+(+b.w||0),0);if(tot<=0)return arr[Math.floor(Math.random()*arr.length)];let r=Math.random()*tot;for(const x of arr){r-=(+x.w||0);if(r<0)return x}return arr[arr.length-1]}
+
+/* ---------- render: booth ---------- */
+function renderChips(){
+  const n=S.visitors.length, c={k:0,e:0,m:0};S.visitors.forEach(v=>c[v.level]=(c[v.level]||0)+1);
+  $("#chips").innerHTML=`<span class="chip">방문 <b>${n}</b>명</span><span class="chip">유 ${c.k} · 초 ${c.e} · 중 ${c.m}</span><span class="chip">뽑기 <b>${S.draws.length}</b>회</span>`;
+  const adm=isAdminView();
+  $("#roleChip").textContent=adm?"관리자 화면":"체험자 화면";$("#roleChip").classList.toggle("admin",adm);
+  $("#roleBtn").hidden=(!S.isAdmin&&!S.local)||S.mode==="mobile";
+  $("#roleBtn").textContent=adm?"체험자 화면 보기":(S.local&&!S.isAdmin?"관리자 모드":"관리자 화면으로");  $("#chips").hidden=!adm;
+}
+function render(){
+  renderChips();
+  if(S.mode==="mobile"&&!(S.phoneView==="board"&&S.me))renderMobile();else renderBooth();
+}
+function renderBooth(){
+  const v=$("#view"),role=isAdminView()?"admin":"player";
+  const st=v.querySelector(".stage");
+  if(!st||st.dataset.role!==role){
+    const adm=role==="admin";
+    v.innerHTML=`<div class="stage ${role}" data-role="${role}">
+      ${adm?`<section class="panel left" aria-label="방문 리스트">
+        <header><h2>방문 리스트</h2><button class="btn sm yel sp" id="regBtn" type="button">현장 등록</button></header>
+        <div class="body"><input class="search" id="q" placeholder="이름·학교 검색" autocomplete="off"><ul class="vlist" id="vlist"></ul></div>
+      </section>`:""}
+      <section class="boardwrap" aria-label="뽑기판">
+        <div class="board">
+          <div class="bhead"><div class="btitle">AI 체험 뽑기<small>종이를 골라 뜯어보세요! 꽝 없음</small></div><div class="price">한 번에<b>1장</b>꽝 없음</div></div>
+          <div class="prizes" id="prizes"></div>
+          <div class="current" id="curbar"></div>
+          <div class="grid" id="grid"></div>
+          <div class="bfoot"><span id="roundInfo"></span>${adm?`<span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm yel" id="resetBtn" type="button">뽑기 초기화</button><button class="btn sm" id="qrBtn" type="button">입장 QR</button><button class="btn sm" id="cfgBtn" type="button">설정</button><button class="btn sm red" id="wipeBtn" type="button">전체 초기화</button></span>`:`<button class="btn yel" id="pRegBtn" type="button">현장 등록</button>`}</div>
+        </div>
+      </section>
+      <section class="panel right" aria-label="참가자 체험 리스트">
+        <header><h2>참가자 체험 리스트</h2></header>
+        <div class="body" id="pbody"></div>
+      </section></div>
+      ${adm?`<section class="stats" aria-label="부스별 체험 횟수"><header><h2>부스별 체험 횟수</h2><span id="statSum"></span>
+        <span class="slegend"><span><i style="background:var(--yellow)"></i>뽑힘</span><span><i style="background:var(--mint)"></i>체험 완료</span></span></header>
+        <div class="srows" id="srows"></div></section>`:""}`;
+    $("#grid").addEventListener("click",e=>{const b=e.target.closest(".tk:not(.open)");if(b)pickTicket(+b.dataset.n)});
+    if(!adm){const pr=$("#pRegBtn");if(pr)pr.onclick=openPlayerRegister}
+    if(adm){
+    $("#q").value=S.q;
+    $("#q").addEventListener("input",e=>{S.q=e.target.value;renderVList()});
+    $("#regBtn").onclick=()=>openRegister(true);
+    $("#qrBtn").onclick=openEntryQR;
+    $("#cfgBtn").onclick=openSettings;
+    $("#wipeBtn").onclick=openWipe;
+    $("#vlist").addEventListener("click",e=>{
+      const ed=e.target.closest("[data-edit]");if(ed)return openEdit(ed.dataset.edit);
+      const dl=e.target.closest("[data-del]");if(dl)return openDelete(dl.dataset.del);
+      const b=e.target.closest(".vitem");if(b)setCurrent(b.dataset.code)});
+    $("#resetBtn").onclick=openReset;
+    $("#grid").addEventListener("click",e=>{if(e.target.closest("#fullReset"))openReset()});
+    }
+  }
+  renderVList();renderBoard();renderPanel();renderStats();
+}
+function renderStats(){
+  const el=$("#srows");if(!el)return;
+  const names=S.cfg.experiences.map(x=>x.name).filter(Boolean);
+  S.draws.forEach(d=>{if(d.exp&&!names.includes(d.exp))names.push(d.exp)});
+  const rows=names.map(nm=>{const ds=S.draws.filter(d=>d.exp===nm),lv={k:0,e:0,m:0};
+    ds.forEach(d=>{const v=vByCode(d.code);if(v)lv[v.level]=(lv[v.level]||0)+1});
+    return{nm,n:ds.length,done:ds.filter(d=>d.done).length,lv}}).sort((a,b)=>b.n-a.n);
+  const max=Math.max(1,...rows.map(r=>r.n)),tot=S.draws.length,td=S.draws.filter(d=>d.done).length;
+  $("#statSum").textContent=`전체 뽑힘 ${tot}회 · 체험 완료 ${td}회`;
+  if(!rows.length){el.innerHTML=`<div class="empty">설정에서 체험 종류를 추가하면 부스별 횟수가 여기 나타나요.</div>`;return}
+  el.innerHTML=rows.map(r=>`<div class="srow"><span class="nm" title="${esc(r.nm)}">${esc(r.nm)}</span>
+    <span class="num"><b>${r.n}</b>회 <small>완료 ${r.done}</small></span>
+    <span class="sbar" role="img" aria-label="뽑힘 ${r.n}회, 완료 ${r.done}회"><i style="width:${r.n/max*100}%"></i><i class="dn" style="width:${r.done/max*100}%"></i></span>
+    <span class="slv">유 ${r.lv.k} · 초 ${r.lv.e} · 중 ${r.lv.m}</span></div>`).join("");
+}
+function renderVList(){
+  const el=$("#vlist");if(!el)return;
+  const q=S.q.trim();
+  let list=[...S.visitors].sort((a,b)=>(b.lastCheckin||0)-(a.lastCheckin||0));
+  if(q)list=list.filter(v=>(v.name+v.school).includes(q)||String(vNo(v))===q.replace("번",""));
+  if(!S.visitors.length){el.innerHTML=`<li class="empty">${S.ready?"아직 방문자가 없어요.<br>입장 QR로 등록하거나<br>‘현장 등록’을 눌러 주세요.":"방문 기록을 불러오는 중…"}</li>`;return}
+  if(!list.length){el.innerHTML=`<li class="empty">‘${esc(q)}’ 검색 결과가 없어요.</li>`;return}
+  el.innerHTML=list.map(v=>{const mine=S.draws.filter(d=>d.code===v.code),n=mine.length,nd=mine.filter(d=>d.done).length;
+    return `<li class="vrow"><button type="button" class="vitem ${S.current===v.code?"on":""}" data-code="${esc(v.code)}">
+      <span class="lv ${v.level}">${LEVEL[v.level]||"?"}</span>
+      <span style="min-width:0"><span class="vname">${esc(v.name)}</span><span class="vsub" style="display:block">${esc(v.school)} ${esc(v.grade)}</span></span>
+      <span class="vmeta"><b>${vNo(v)}번</b><span class="vcnt">체험 ${n}회</span>${nd?`<span style="display:block">완료 ${nd}</span>`:""}${fmtT(v.lastCheckin)}</span></button>
+      <span class="vact"><button type="button" data-edit="${esc(v.code)}" aria-label="${esc(v.name)} 정보 수정">수정</button><button type="button" class="del" data-del="${esc(v.code)}" aria-label="${esc(v.name)} 삭제">삭제</button></span></li>`}).join("");
+}
+function renderBoard(){
+  const g=$("#grid");if(!g)return;
+  const n=+S.cfg.tickets||40, opened={};roundDraws().forEach(d=>opened[d.ticket]=d);
+  let html="";
+  for(let i=1;i<=n;i++){const d=opened[i];
+    if(d){const v=vByCode(d.code);html+=`<div class="tk open" title="${esc(d.exp)}"><em class="n">${i}</em><em>${esc(v?v.name:"")}</em></div>`}
+    else html+=`<button type="button" class="tk" data-n="${i}" style="--c:${TK_COLORS[i%5]}" aria-label="${i}번 종이 뽑기"><span>${i}</span></button>`;
+  }
+  const left=n-Object.keys(opened).length;
+  if(left===0)html+=isAdminView()?`<div class="full">종이를 모두 뽑았어요!<button class="btn red" id="fullReset" type="button">뽑기 초기화하고 새 미션 섞기</button></div>`:`<div class="full">종이를 모두 뽑았어요!<br>새 판을 깔 때까지 잠시만 기다려 주세요.</div>`;
+  g.innerHTML=html;
+  $("#roundInfo").textContent=`${S.round}판째 · 남은 종이 ${left}장${S.layout?" · 미션 섞음":""}`;
+  $("#prizes").innerHTML=giftsLeft().map(x=>`<span class="prize ${x.left<=0?"out":""}"><span class="rk">${esc(x.rank)}</span>${esc(x.name)}<span class="left">${x.left}개</span></span>`).join("");
+  const cc=curCode(),cv=cc&&vByCode(cc),phone=S.mode==="mobile";
+  $("#curbar").innerHTML=cv?`<span>${phone?"내 뽑기":"지금 뽑는 사람"}</span><span class="who">${vNo(cv)}번 ${esc(cv.name)}</span><span style="font-size:14px;opacity:.85">${esc(cv.school)} ${esc(cv.grade)}</span>${phone?`<button class="btn sm" id="backReg" type="button" style="margin-left:auto">내 정보</button>`:""}`
+    :`<span>${isAdminView()?"왼쪽 방문 리스트에서 뽑을 사람을 골라 주세요":"‘현장 등록’을 눌러 이름을 입력하면 종이를 고를 수 있어요"}</span>`;
+  const br=$("#backReg");if(br)br.onclick=()=>{S.phoneView="done";$("#view").innerHTML="";mobKey="";render()};
+}
+function renderPanel(){
+  const el=$("#pbody");if(!el)return;
+  const cc=curCode(),v=cc&&vByCode(cc);
+  const adm=isAdminView();
+  const canTick=true; /* 관리자·체험자 화면·휴대폰 모두 미션 완료 체크 가능 */
+  if(!v){el.innerHTML=`<div class="empty">${adm?"참가자를 선택하면<br>학교급·학교·학년·이름과<br>뽑은 체험 목록이 여기 나타나요.":"아래 ‘현장 등록’ 버튼으로 이름을 입력하면<br>내 정보와 뽑은 체험이 여기 나타나요."}</div>${adm?renderRecent():""}`;return}
+  const ds=S.draws.filter(d=>d.code===v.code).sort((a,b)=>b.at-a.at);
+  const done=ds.filter(d=>d.done).length;
+  el.innerHTML=`<div class="pcard"><span class="lv ${v.level}">${LEVEL[v.level]}</span><span class="pn">${esc(v.name)}</span><span class="ps">${esc(v.school)} · ${esc(v.grade)}</span>
+    <dl><dt>학교급</dt><dd>${LEVEL_FULL[v.level]}</dd><dt>참가번호</dt><dd>${vNo(v)}번</dd><dt>체크인</dt><dd>${(v.checkins||[]).length}회 · 최근 ${fmtT(v.lastCheckin)}</dd></dl></div>
+    <div class="sec">체험 리스트 <span class="cnt">${ds.length}</span><span style="margin-left:auto;font-family:var(--f-round);font-size:13px;color:var(--ink-soft)">완료 ${done}/${ds.length}</span></div>
+    ${ds.length?`<ul class="dlist">${ds.map(d=>`<li class="ditem ${d.done?"done":""}"><span class="no" style="--c:${TK_COLORS[d.ticket%5]}">${d.ticket}</span>
+      <span style="min-width:0"><span class="ex" style="display:block">${esc(d.exp)}</span><span class="gf">${esc(d.rank)} ${esc(d.gift)} · ${fmtT(d.at)}</span></span>
+      ${canTick?`<button type="button" class="chk" data-id="${esc(d.id)}" aria-label="체험 완료 표시"><i>${d.done?"✓":""}</i>${d.done?"완료":"체험 전"}</button>`:`<span class="chk"><i>${d.done?"✓":""}</i>${d.done?"완료":"체험 전"}</span>`}</li>`).join("")}</ul>`
+    :`<div class="empty">아직 뽑은 종이가 없어요.<br>뽑기판에서 종이를 골라 주세요.</div>`}`;
+  if(canTick)el.querySelectorAll("button.chk").forEach(b=>b.onclick=()=>toggleDone(b.dataset.id));
+}
+function renderRecent(){
+  const ds=[...S.draws].sort((a,b)=>b.at-a.at).slice(0,8);if(!ds.length)return"";
+  return `<div class="sec">최근 뽑기</div><ul class="dlist">${ds.map(d=>{const v=vByCode(d.code);return`<li class="ditem"><span class="no" style="--c:${TK_COLORS[d.ticket%5]}">${d.ticket}</span><span style="min-width:0"><span class="ex" style="display:block;font-size:14px">${esc(d.exp)}</span><span class="gf">${esc(v?v.name:"")} · ${esc(d.gift)}</span></span><span class="gf">${fmtT(d.at)}</span></li>`}).join("")}</ul>`;
+}
+
+/* ---------- render: mobile ---------- */
+let mobKey="";
+/* 휴대폰 흐름: 입장 QR → 개인정보 입력 → 등록 완료 → '체험보드 선택' → 내 뽑기판 */
+function renderMobile(){
+  const v=$("#view"),me=S.me&&vByCode(S.me);
+  const key=S.phoneView+"|"+S.ready+"|"+!!S.db+"|"+(S.me||"")+"|"+(me?vNo(me)+me.name+me.school+me.grade:"");
+  if(key===mobKey&&v.querySelector(".mob")){const st=$("#dbStatus");if(st)st.textContent=dbStatusText();return}
+  mobKey=key;
+  let body;
+  if(S.phoneView==="done"&&me){
+    body=`<div class="mcard qrbox"><h2 style="margin:0">등록 완료!</h2>
+      <p style="margin:0;font-size:18px">${esc(me.school)} ${esc(me.grade)} <b>${esc(me.name)}</b></p>
+      <div class="code">${vNo(me)}번</div><p style="margin:0;color:var(--ink-soft)">내 체험 순서 번호예요</p>
+      <button class="btn red big" id="goBoard" type="button">체험보드 선택</button>
+      <button class="btn sm" id="newReg" type="button">다른 사람으로 새로 등록</button></div>`;
+  }else if(S.ready&&!S.db){
+    body=`<div class="mcard qrbox"><h2 style="margin:0">부스에서 등록해 주세요</h2>
+      <p style="margin:0;line-height:1.7">이 휴대폰에서는 참가 등록을 저장할 수 없어요.<br>부스에 있는 <b>등록용 태블릿</b>에서 이름을 입력하고<br>체험보드에서 종이를 골라 주세요!</p></div>`;
+  }else{
+    body=`<div class="mcard"><h2>AI 체험 참가 등록</h2><p style="margin:-4px 0 14px;line-height:1.5;color:var(--ink-soft);font-size:14px">학교급·학교·학년·이름을 입력하면 체험보드에서 종이를 고를 수 있어요.</p><div id="regForm"></div></div>`;
+  }
+  v.innerHTML=`<div class="mob">${body}<p class="status" id="dbStatus">${dbStatusText()}</p></div>`;
+  if($("#regForm"))mountRegForm($("#regForm"),code=>{S.me=code;ls("ppopgi.me",code);S.phoneView="done";render()});
+  if($("#goBoard"))$("#goBoard").onclick=()=>{S.phoneView="board";v.innerHTML="";render();window.scrollTo(0,0)};
+  if($("#newReg"))$("#newReg").onclick=()=>{S.me=null;ls("ppopgi.me","");S.phoneView="reg";render()};
+}
+function personalCard(code){
+  const v=vByCode(code);
+  return `<div class="mcard qrbox"><h2 style="margin:0">등록 완료!</h2>
+    <p style="margin:0;font-size:18px">${v?esc(v.school)+" "+esc(v.grade)+" <b>"+esc(v.name)+"</b>":""}</p>
+    ${v?`<div class="code">${vNo(v)}번</div><p style="margin:0;color:var(--ink-soft)">체험 순서 번호예요</p>`:""}
+    <p style="margin:0;line-height:1.6;color:var(--ink-soft)">방문 리스트에 올라갔어요.<br>부스에서 뽑기판 종이를 골라 주세요!</p>
+    <button class="btn yel big" id="again" type="button">다음 사람 등록</button></div>`;
+}
+function dbStatusText(){
+  if(!S.ready)return"실시간 연동 준비 중…";
+  if(!S.db)return"이 기기는 실시간 연동이 꺼져 있어요. claude.ai에 로그인한 기기로 열어 주세요.";
+  if(S.fb)return S.fbErr?"Firebase에 연결하지 못했어요. Firestore 규칙과 firebase-config.js를 확인해 주세요.":"실시간 연동 중 · 모든 기기에 바로 반영돼요";
+  if(S.local)return"로그인 없이 실행 중 · 기록은 이 기기에만 저장돼요";
+  if(!S.canWrite)return"보기 전용 권한이라 등록·뽑기를 저장할 수 없어요. 공유 권한을 ‘기여자’ 이상으로 바꿔 주세요.";
+  return"실시간 연동 중 · 모든 기기에 바로 반영돼요";
+}
+
+/* ---------- registration form ---------- */
+function mountRegForm(host,onDone,init){
+  const st={level:null};
+  host.innerHTML=`<label class="f"><span>학교급</span></label>
+    <div class="seg" id="lvSeg" style="margin:-6px 0 12px">${["k","e","m"].map(l=>`<button type="button" data-l="${l}" aria-pressed="false">${LEVEL_FULL[l].replace("등학교","").replace("학교","")}</button>`).join("")}</div>
+    <label class="f" for="rSchool"><span>학교</span><select id="rSchool" disabled><option value="">학교급을 먼저 골라 주세요</option></select></label>
+    <label class="f" id="rOtherWrap" hidden for="rOther"><span>학교 이름 직접 입력</span><input id="rOther" placeholder="예: ○○초등학교" autocomplete="off"></label>
+    <label class="f" for="rGrade"><span>학년</span><select id="rGrade" disabled><option value="">학교급을 먼저 골라 주세요</option></select></label>
+    <label class="f" for="rName"><span>이름</span><input id="rName" placeholder="이름" maxlength="12" autocomplete="off"></label>
+    <div class="err" id="rErr"></div>
+    <button class="btn red big" id="rGo" type="button">등록하고 입장하기</button>`;
+  const sch=host.querySelector("#rSchool"),gr=host.querySelector("#rGrade"),ow=host.querySelector("#rOtherWrap");
+  host.querySelectorAll("#lvSeg button").forEach(b=>b.onclick=()=>{
+    st.level=b.dataset.l;host.querySelectorAll("#lvSeg button").forEach(x=>x.setAttribute("aria-pressed",x===b));
+    sch.disabled=false;gr.disabled=false;
+    sch.innerHTML=`<option value="">학교를 골라 주세요 (${SCHOOLS[st.level].length}곳)</option>`+SCHOOLS[st.level].map(s=>`<option>${esc(s)}</option>`).join("")+`<option value="__other">목록에 없어요 (직접 입력)</option>`;
+    gr.innerHTML=`<option value="">학년을 골라 주세요</option>`+GRADES[st.level].map(g=>`<option>${g}</option>`).join("");
+    ow.hidden=true;
+  });
+  sch.onchange=()=>{ow.hidden=sch.value!=="__other"};
+  if(init){
+    const lb=host.querySelector(`#lvSeg button[data-l="${init.level}"]`);if(lb)lb.click();
+    if(SCHOOLS[init.level]&&SCHOOLS[init.level].includes(init.school))sch.value=init.school;
+    else{sch.value="__other";ow.hidden=false;host.querySelector("#rOther").value=init.school||""}
+    gr.value=init.grade||"";host.querySelector("#rName").value=init.name||"";
+    host.querySelector("#rGo").textContent="수정 저장";
+  }
+  host.querySelector("#rGo").onclick=async()=>{
+    const err=host.querySelector("#rErr");err.textContent="";
+    let school=sch.value==="__other"?host.querySelector("#rOther").value.trim():sch.value;
+    const grade=gr.value,name=host.querySelector("#rName").value.trim();
+    if(!st.level)return err.textContent="학교급을 골라 주세요.";
+    if(!school)return err.textContent="학교를 골라 주세요.";
+    if(!grade)return err.textContent="학년을 골라 주세요.";
+    if(!name)return err.textContent="이름을 적어 주세요.";
+    if(!S.db)return err.textContent="실시간 연동이 꺼져 있어 저장할 수 없어요. 로그인한 기기에서 등록해 주세요.";
+    const btn=host.querySelector("#rGo");btn.disabled=true;btn.textContent="저장 중…";
+    if(init){
+      try{await S.db.doc("visitors/"+init.code).update({level:st.level,school,grade,name});onDone(init.code)}
+      catch(e){err.textContent="수정하지 못했어요. 잠시 뒤 다시 눌러 주세요.";btn.disabled=false;btn.textContent="수정 저장"}
+      return;
+    }
+    try{
+      const code=newCode(),now=Date.now();
+      await S.db.doc("visitors/"+code).set({code,no:nextNo(),level:st.level,school,grade,name,createdAt:now,lastCheckin:now,checkins:[now]});
+      onDone(code);
+    }catch(e){err.textContent=e&&e.code==="quota_exceeded"?"저장 공간이 가득 찼어요. 오래된 기록을 정리해 주세요.":"저장하지 못했어요. 잠시 뒤 다시 눌러 주세요.";btn.disabled=false;btn.textContent="등록하고 입장하기"}
+  };
+}
+function newCode(){const A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let c;do{c="";for(let i=0;i<4;i++)c+=A[Math.floor(Math.random()*A.length)]}while(vByCode(c));return c}
+function openPlayerRegister(){
+  const L=openModal(`<h3>현장 등록</h3><p style="margin:-4px 0 12px;line-height:1.5;color:var(--ink-soft)">학교급·학교·학년·이름을 입력하면 바로 종이를 고를 수 있어요.</p><div id="preg"></div><div class="row"><button class="btn" data-close type="button">닫기</button></div>`);
+  mountRegForm(L.querySelector("#preg"),code=>{
+    if(S.mode==="mobile"){S.me=code;ls("ppopgi.me",code)}else S.boothMe=code;
+    render();
+    let tries=0;
+    const fill=()=>{const v=vByCode(code);if(!v&&tries++<15)return setTimeout(fill,120);
+    const m=L.querySelector(".modal");if(!m)return;
+    m.innerHTML=`<div class="qrbox"><h3 style="margin:0">등록 완료!</h3>
+      <p style="margin:0;font-size:18px">${v?esc(v.school)+" "+esc(v.grade)+" <b>"+esc(v.name)+"</b>":""}</p>
+      ${v?`<div class="code">${vNo(v)}번</div><p style="margin:0;color:var(--ink-soft)">체험 순서 번호예요</p>`:""}
+      <button class="btn red big" data-close type="button">종이 고르러 가기</button></div>`;};
+    fill();
+  });
+}
+function openRegister(){
+  const L=openModal(`<h3>현장 등록</h3><div id="mreg"></div><div class="row"><button class="btn" data-close type="button">닫기</button></div>`);
+  mountRegForm(L.querySelector("#mreg"),async code=>{
+    await setCurrent(code,true);
+    L.querySelector(".modal").innerHTML=personalCard(code).replace('id="again"','data-close')+"";
+    L.querySelector("[data-close]").textContent="뽑기 시작";
+    L.querySelector("[data-close]").onclick=()=>L.remove();
+  });
+}
+
+function openEdit(code){
+  const v=vByCode(code);if(!v)return;
+  const L=openModal(`<h3>방문자 정보 수정</h3><div id="medit"></div><div class="row"><button class="btn" data-close type="button">취소</button></div>`);
+  mountRegForm(L.querySelector("#medit"),()=>{toast(`${v.name} 정보를 수정했어요`);L.remove()},v);
+}
+function openDelete(code){
+  const v=vByCode(code);if(!v)return;
+  const ds=S.draws.filter(d=>d.code===code);
+  const L=openModal(`<h3>방문자 삭제</h3><p style="line-height:1.6;margin:0"><b>${esc(v.school)} ${esc(v.grade)} ${esc(v.name)}</b> 님을 방문 리스트에서 지울까요?<br>${ds.length?`이 참가자가 뽑은 체험 ${ds.length}개도 함께 지워지고, 뽑기판의 해당 종이는 다시 뽑을 수 있게 돼요.`:"아직 뽑은 체험은 없어요."}</p>
+    <div class="err" id="dErr"></div><div class="row"><button class="btn" data-close type="button">취소</button><button class="btn red" id="dYes" type="button">삭제</button></div>`);
+  L.querySelector("#dYes").onclick=async()=>{
+    const b=L.querySelector("#dYes");b.disabled=true;b.textContent="삭제 중…";
+    try{
+      for(const d of ds)await S.db.doc("draws/"+d.id).delete();
+      await S.db.doc("visitors/"+code).delete();
+      if(S.current===code)await S.db.doc("state/current").set({code:null,at:Date.now()});
+      toast(`${v.name} 님을 삭제했어요`);L.remove();
+    }catch(e){L.querySelector("#dErr").textContent="삭제하지 못했어요. 다시 눌러 주세요.";b.disabled=false;b.textContent="삭제"}
+  };
+}
+function openReset(){
+  const n=+S.cfg.tickets||40,used=roundDraws().length;
+  const L=openModal(`<h3>뽑기 초기화</h3><p style="line-height:1.6;margin:0">종이 ${n}장을 새로 깔고, 종이마다 들어갈 <b>체험 미션과 사은품을 무작위로 다시 섞어요.</b><br>지금 판에서 ${used}장 뽑았어요. 방문 리스트와 참가자별 체험 기록은 그대로 남아요.</p>
+    <div class="err" id="rsErr"></div><div class="row"><button class="btn" data-close type="button">취소</button><button class="btn red" id="rsYes" type="button">초기화하고 섞기</button></div>`);
+  L.querySelector("#rsYes").onclick=async()=>{
+    try{await resetBoard();toast(`${S.round+1}판째 · 미션을 새로 섞었어요`);L.remove()}
+    catch(e){L.querySelector("#rsErr").textContent=e&&e.message==="noexp"?"설정에서 체험 종류를 먼저 추가해 주세요.":"초기화하지 못했어요. 다시 눌러 주세요."}
+  };
+}
+function openWipe(){
+  const nv=S.visitors.length,nd=S.draws.length;
+  const L=openModal(`<h3>전체 초기화</h3>
+    <p style="line-height:1.6;margin:0">방문자 <b>${nv}명</b>과 뽑기 기록 <b>${nd}건</b>을 모두 지우고 1판째부터 새로 시작해요. 지운 기록은 되돌릴 수 없어요.<br>체험 종류·사은품 설정과 입장 QR 링크는 그대로 남아요.</p>
+    <label class="f" for="wipeIn" style="margin-top:12px"><span>계속하려면 <b>초기화</b>라고 입력해 주세요</span><input id="wipeIn" autocomplete="off"></label>
+    <div class="err" id="wErr"></div>
+    <div class="row"><button class="btn" data-close type="button">취소</button><button class="btn red" id="wYes" type="button" disabled>모두 지우고 새로 시작</button></div>`);
+  const inp=L.querySelector("#wipeIn"),yes=L.querySelector("#wYes");
+  inp.addEventListener("input",()=>{yes.disabled=inp.value.trim()!=="초기화"});
+  yes.onclick=async()=>{
+    yes.disabled=true;inp.disabled=true;L.querySelector("[data-close]").disabled=true;
+    const ds=[...S.draws],vs=[...S.visitors];let done=0;const tot=ds.length+vs.length;
+    try{
+      for(const d of ds){await S.db.doc("draws/"+d.id).delete();yes.textContent=`지우는 중… ${++done}/${tot}`}
+      for(const v of vs){await S.db.doc("visitors/"+v.code).delete();yes.textContent=`지우는 중… ${++done}/${tot}`}
+      await S.db.doc("state/current").set({code:null,at:Date.now()});
+      await resetBoard(1);
+      S.q="";toast("전체 초기화했어요 · 1판째부터 새로 시작해요");L.remove();
+    }catch(e){L.querySelector("#wErr").textContent=`초기화가 중간에 멈췄어요(${done}/${tot}). 다시 누르면 남은 기록부터 이어서 지워요.`;
+      yes.disabled=false;yes.textContent="다시 시도";L.querySelector("[data-close]").disabled=false}
+  };
+}
+async function resetBoard(toRound){
+  if(!S.db)throw new Error("nodb");
+  const n=+S.cfg.tickets||40;
+  const exps=S.cfg.experiences.filter(x=>x.name&&(+x.w||0)>0);if(!exps.length)throw new Error("noexp");
+  const gl=giftsLeft().filter(x=>x.name&&(+x.w||0)>0),left={};gl.forEach(g=>left[g.name]=toRound===1?(+g.stock||0):g.left);
+  // 체험은 고르게 섞이도록 한 바퀴씩 채운 뒤 셔플, 사은품은 남은 수량 안에서 가중 추첨
+  const pool=[];while(pool.length<n){const round=[];exps.forEach(e=>{const k=Math.max(1,Math.round(+e.w||1));for(let i=0;i<k;i++)round.push(e.name)});pool.push(...round)}
+  const expList=pool.slice(0,n);for(let i=expList.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[expList[i],expList[j]]=[expList[j],expList[i]]}
+  const layout=expList.map(exp=>{const av=gl.filter(g=>left[g.name]>0);const g=av.length?wpick(av):null;if(g)left[g.name]--;return{exp,gift:g?g.name:"참가 확인 도장",rank:g?(g.rank||""):"참가"}});
+  await S.db.doc("state/board").set({round:toRound||S.round+1,layout,at:Date.now()});
+}
+
+/* ---------- actions ---------- */
+async function setCurrent(code,silent){
+  S.current=code;render();
+  if(!S.db)return;
+  try{await S.db.doc("state/current").set({code,at:Date.now()})}catch(e){if(!silent)toast("다른 기기에 반영하지 못했어요")}
+}
+async function checkIn(code){
+  code=(code||"").toUpperCase();
+  if(!S.db){toast("로그인한 기기에서 체크인할 수 있어요");return}
+  const v=vByCode(code)||await S.db.doc("visitors/"+code).get().then(s=>s.exists?s.data():null).catch(()=>null);
+  if(!v){toast(`참가번호 ${code}를 찾을 수 없어요`);return}
+  const now=Date.now(),ck=[...(v.checkins||[]),now].slice(-30);
+  try{await S.db.doc("visitors/"+code).update({lastCheckin:now,checkins:ck});await S.db.doc("state/current").set({code,at:now});
+    S.current=code;render();toast(`${v.name} 체크인 완료 · 부스 화면에 표시돼요`)}catch(e){toast("체크인을 저장하지 못했어요")}
+}
+let picking=false;
+async function pickTicket(n){
+  if(picking)return;
+  const who=curCode();
+  if(!who){toast(isAdminView()?"먼저 왼쪽에서 참가자를 골라 주세요":"선생님이 이름을 불러 줄 때까지 기다려 주세요");$("#q")&&$("#q").focus();return}
+  if(!S.db){toast("실시간 연동이 꺼져 있어 뽑기를 저장할 수 없어요");return}
+  if(roundDraws().some(d=>d.ticket===n))return;
+  const exps=S.cfg.experiences.filter(x=>x.name&&(+x.w||0)>0);
+  const gl=giftsLeft().filter(x=>x.name&&x.left>0&&(+x.w||0)>0);
+  if(!exps.length){toast("설정에서 체험 종류를 추가해 주세요");return}
+  let ex=wpick(exps),gf=gl.length?wpick(gl):{rank:"참가",name:"참가 확인 도장"};
+  const pre=S.layout&&S.layout[n-1];
+  if(pre){ex={name:pre.exp};
+    const still=gl.find(g=>g.name===pre.gift);
+    if(still||pre.gift==="참가 확인 도장")gf={name:pre.gift,rank:pre.rank}}
+  const id="r"+S.round+"-t"+n, v=vByCode(who);
+  const doc={id,round:S.round,ticket:n,code:who,exp:ex.name,gift:gf.name,rank:gf.rank||"",at:Date.now(),done:false};
+  picking=true;
+  try{
+    const ref=S.db.doc("draws/"+id);const ex0=await ref.get();
+    if(ex0.exists){toast("방금 다른 기기에서 뽑힌 종이예요");picking=false;return}
+    await ref.set(doc);
+    showReveal(doc,v);
+  }catch(e){toast(e&&e.code==="quota_exceeded"?"저장 공간이 가득 찼어요":"뽑기를 저장하지 못했어요. 다시 눌러 주세요")}
+  picking=false;
+}
+async function toggleDone(id){
+  const d=S.draws.find(x=>x.id===id);if(!d||!S.db)return;
+  try{await S.db.doc("draws/"+id).update({done:!d.done})}catch(e){toast("저장하지 못했어요")}
+}
+
+/* ---------- reveal ---------- */
+function showReveal(d,v){
+  const c=TK_COLORS[d.ticket%5];
+  const bits=Array.from({length:22},(_,i)=>{const a=Math.random()*Math.PI*2,r=140+Math.random()*160;
+    return `<i style="--x:${Math.cos(a)*r}px;--y:${Math.sin(a)*r}px;--r:${Math.random()*720-360}deg;background:${TK_COLORS[i%5]};animation-delay:${.85+Math.random()*.2}s"></i>`}).join("");
+  const L=openModal(`<div class="reveal" style="--c:${c}">
+    <div class="burst" aria-hidden="true">${bits}</div>
+    <div class="sheet" role="dialog" aria-label="뽑기 결과">
+      <div class="flap t" aria-hidden="true">${d.ticket}</div><div class="flap b" aria-hidden="true"></div>
+      <div class="tno">${d.ticket}번 종이</div>
+      <div class="stamp">당 첨</div>
+      <div class="exl">오늘의 AI 체험</div>
+      <div class="exn">${esc(d.exp)}</div>
+      <div class="gift"><span class="rk">${esc(d.rank)}</span>${esc(d.gift)}</div>
+      <div class="forwho">${v?esc(v.school)+" "+esc(v.grade)+" "+esc(v.name):""}</div>
+      <div class="row" style="justify-content:center"><button class="btn red" data-close type="button">체험하러 가기</button></div>
+    </div></div>`,true);
+}
+
+/* ---------- modals ---------- */
+function openModal(html,bare){
+  const L=document.createElement("div");L.className="ov";
+  L.innerHTML=bare?html:`<div class="modal">${html}</div>`;
+  L.addEventListener("click",e=>{if(e.target===L||e.target.closest("[data-close]"))L.remove()});
+  document.addEventListener("keydown",function k(e){if(e.key==="Escape"){L.remove();document.removeEventListener("keydown",k)}});
+  $("#layer").appendChild(L);
+  const f=L.querySelector("button,input,select");f&&setTimeout(()=>f.focus(),50);
+  return L;
+}
+function personalLink(code){return S.cfg.link?S.cfg.link.replace(/#.*$/,"")+"#v-"+code:""}
+function drawQR(el,text){
+  if(!el)return;el.innerHTML="";
+  if(!text){el.innerHTML=`<p style="line-height:1.5;margin:0;font-size:13px;width:200px">설정에서 이 뽑기판의 링크를 넣으면 QR이 만들어져요.</p>`;return}
+  if(typeof QRCode==="undefined"){el.textContent="QR을 불러오지 못했어요";return}
+  new QRCode(el,{text,width:480,height:480,colorDark:"#2b1a12",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});
+}
+function openEntryQR(){
+  /* claude.ai 밖(일반 웹 주소)에서 열었으면 지금 페이지 주소로 QR을 만듦 */
+  const base=!window.claude&&/^https?:/.test(location.protocol)?location.href.replace(/#.*$/,""):(S.cfg.link||"").replace(/#.*$/,"");
+  const link=base?base+"#reg":"";
+  const L=openModal(`<div class="qrbox"><h3 style="margin:0">부스 입장 QR</h3>
+    <p style="margin:0;line-height:1.6">휴대폰 카메라로 찍으면 참가 등록 화면이 열려요.<br>등록하면 참가순서가 나오고, 방문 리스트에 바로 올라와요.</p>
+    <div class="qr" id="eqr"></div>
+    <p class="status" style="margin:0;word-break:break-all">${esc(link||"링크가 아직 없어요")}</p>
+    <div class="row" style="justify-content:center"><button class="btn" data-close type="button">닫기</button></div></div>`);
+  drawQR(L.querySelector("#eqr"),link);
+}
+function openSettings(){
+  const c=JSON.parse(JSON.stringify(S.cfg));let tab="exp";
+  const L=openModal(`<h3>뽑기판 설정</h3><div class="tabs" id="ctabs"></div><div id="cbody"></div><div class="err" id="cErr"></div>
+    <div class="row"><button class="btn" data-close type="button">닫기</button><button class="btn red" id="cSave" type="button">저장</button></div>`);
+  const draw=()=>{
+    L.querySelector("#ctabs").innerHTML=[["exp","체험 종류"],["gift","사은품"],["board","뽑기판·링크"]].map(t=>`<button type="button" data-t="${t[0]}" aria-pressed="${tab===t[0]}">${t[1]}</button>`).join("");
+    L.querySelectorAll("#ctabs button").forEach(b=>b.onclick=()=>{collect();tab=b.dataset.t;draw()});
+    const B=L.querySelector("#cbody");
+    if(tab==="exp")B.innerHTML=`<p class="status" style="margin:0 0 6px">비중이 클수록 자주 나와요. 0이면 나오지 않아요.</p><table class="cfgt"><tbody>${c.experiences.map((x,i)=>`<tr><td><input data-k="name" data-i="${i}" value="${esc(x.name)}" aria-label="체험 이름"></td><td><input class="num" type="number" min="0" data-k="w" data-i="${i}" value="${x.w}" aria-label="비중"></td><td><button class="btn sm" data-del="${i}" type="button">삭제</button></td></tr>`).join("")}</tbody></table><button class="btn sm yel" id="add" type="button" style="margin-top:8px">체험 추가</button>`;
+    if(tab==="gift")B.innerHTML=`<p class="status" style="margin:0 0 6px">등급 · 사은품 · 비중 · 준비 수량. 남은 수량이 0이면 자동으로 빠져요.</p><table class="cfgt"><tbody>${c.gifts.map((x,i)=>`<tr><td><input data-k="rank" data-i="${i}" value="${esc(x.rank)}" style="width:62px" aria-label="등급"></td><td><input data-k="name" data-i="${i}" value="${esc(x.name)}" aria-label="사은품"></td><td><input class="num" type="number" min="0" data-k="w" data-i="${i}" value="${x.w}" aria-label="비중"></td><td><input class="num" type="number" min="0" data-k="stock" data-i="${i}" value="${x.stock}" aria-label="수량"></td><td><button class="btn sm" data-del="${i}" type="button">삭제</button></td></tr>`).join("")}</tbody></table><button class="btn sm yel" id="add" type="button" style="margin-top:8px">사은품 추가</button>`;
+    if(tab==="board")B.innerHTML=`<label class="f" for="cLink"><span>이 뽑기판 링크 (입장 QR·개인 QR에 쓰여요)</span><input id="cLink" value="${esc(c.link)}" placeholder="https://claude.ai/artifact/..."></label>
+      <label class="f" for="cTk"><span>한 판의 종이 수</span><input id="cTk" type="number" min="8" max="80" value="${c.tickets}"></label>
+      <label class="f" for="cPin"><span>관리자 PIN (로그인 없이 연 기기에서 관리자 화면을 열 때)</span><input id="cPin" value="${esc(c.pin||"1234")}" inputmode="numeric" maxlength="8" autocomplete="off"></label>
+      <p class="status" style="margin:0">뽑기 초기화(미션 섞기)는 뽑기판 아래 ‘뽑기 초기화’ 버튼으로 해요. 체험·사은품을 바꿨다면 저장한 뒤 초기화해야 새 판에 반영돼요.</p>`;
+    const list=tab==="exp"?c.experiences:c.gifts;
+    B.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{collect();list.splice(+b.dataset.del,1);draw()});
+    const add=B.querySelector("#add");if(add)add.onclick=()=>{collect();list.push(tab==="exp"?{name:"",w:1}:{rank:"",name:"",w:5,stock:20});draw()};
+  };
+  const collect=()=>{
+    const list=tab==="exp"?c.experiences:tab==="gift"?c.gifts:null;
+    if(list)L.querySelectorAll("#cbody input[data-k]").forEach(i=>{const k=i.dataset.k;list[+i.dataset.i][k]=(k==="w"||k==="stock")?Math.max(0,+i.value||0):i.value.trim()});
+    if(tab==="board"){c.link=L.querySelector("#cLink").value.trim();c.tickets=Math.min(80,Math.max(8,+L.querySelector("#cTk").value||40));c.pin=L.querySelector("#cPin").value.trim()||"1234"}
+  };
+  draw();
+  L.querySelector("#cSave").onclick=async()=>{collect();
+    c.experiences=c.experiences.filter(x=>x.name);c.gifts=c.gifts.filter(x=>x.name);
+    if(!S.db){L.querySelector("#cErr").textContent="실시간 연동이 꺼져 있어 저장할 수 없어요.";return}
+    try{await S.db.doc("config/main").set(c);toast("설정을 저장했어요");L.remove()}catch(e){L.querySelector("#cErr").textContent="저장하지 못했어요. 편집 권한이 있는 계정인지 확인해 주세요."}};
+}
+
+/* ---------- boot ---------- */
+function openPin(){
+  const L=openModal(`<h3>관리자 모드</h3><p style="margin:0 0 10px;line-height:1.6">로그인 없이 연 기기에서 관리자 화면을 열려면 관리자 PIN을 입력해 주세요.</p>
+    <label class="f" for="pinIn"><span>관리자 PIN</span><input id="pinIn" type="password" inputmode="numeric" autocomplete="off"></label>
+    <div class="err" id="pinErr"></div><div class="row"><button class="btn" data-close type="button">취소</button><button class="btn red" id="pinGo" type="button">열기</button></div>`);
+  const go=()=>{if(L.querySelector("#pinIn").value.trim()===String(S.cfg.pin||"1234")){S.isAdmin=true;S.viewAs="admin";ss("ppopgi.unlock","1");L.remove();render();toast("관리자 화면을 열었어요")}
+    else L.querySelector("#pinErr").textContent="PIN이 맞지 않아요."};
+  L.querySelector("#pinGo").onclick=go;L.querySelector("#pinIn").addEventListener("keydown",e=>{if(e.key==="Enter")go()});
+}
+$("#roleBtn").onclick=()=>{if(S.local&&!S.isAdmin)return openPin();if(!S.isAdmin)return;S.viewAs=isAdminView()?"player":"admin";ls("ppopgi.viewAs",S.viewAs);render()};
+let rsT;window.addEventListener("resize",()=>{clearTimeout(rsT);rsT=setTimeout(()=>{const m=isPhone()?"mobile":"booth";if(m!==S.mode){S.mode=m;if(m==="booth")S.regMode=false;mobKey="";render()}},200)});
+render();
+
+/* Firebase 설정(firebase-config.js)이 있으면 Firestore로 모든 기기 실시간 공유 — 로그인 불필요, 관리자는 PIN */
+function firebaseDB(){
+  const c=window.FIREBASE_CONFIG;
+  if(!c||!c.projectId||!window.firebase||/여기에/.test(JSON.stringify(c)))return null;
+  try{if(!firebase.apps.length)firebase.initializeApp(c);return firebase.firestore()}catch(e){console.error(e);return null}
+}
+(async function connect(){
+  const fdb=firebaseDB();
+  if(fdb){S.db=fdb;S.local=true;S.fb=true;S.isAdmin=ss("ppopgi.unlock")==="1";S.ready=true;subscribe(fdb);return}
+  let db=null,user=null;
+  try{db=window.claude?await window.claude.use("db"):null}catch(e){db=null}
+  try{user=window.claude?await window.claude.use("user"):null}catch(e){user=null}
+  S.user=user;
+  let canW=null;try{if(user)canW=await user.can("data.write")}catch(e){}
+  try{S.isAdmin=user?!!(await user.canEdit()):false}catch(e){S.isAdmin=false}
+  /* 로그인하지 않았거나 저장 권한이 없는 계정 → 이 기기에만 저장하는 모드로 바로 실행 */
+  if(!db||canW===false){db=localDB();S.local=true;S.isAdmin=ss("ppopgi.unlock")==="1"}
+  S.db=db;
+  S.ready=true;
+  subscribe(db);
+})();
+function subscribe(db){
+  const fail=e=>{console.error(e);if(S.fb){S.fbErr=true;render()}};
+  db.doc("config/main").onSnapshot(s=>{S.cfg=s.exists?{...DEFAULT_CFG,...s.data()}:DEFAULT_CFG;render()},fail);
+  db.doc("state/board").onSnapshot(s=>{const d=s.exists?s.data():{};S.round=+d.round||1;S.layout=Array.isArray(d.layout)?d.layout:null;render()},fail);
+  db.doc("state/current").onSnapshot(s=>{const c=s.exists?s.data().code:null;if(c!==S.current&&S.ready&&S._curSeen)S.boothMe=null;S._curSeen=true;S.current=c;render()},fail);
+  db.collection("visitors").limit(1000).onSnapshot(s=>{S.visitors=s.docs.map(d=>d.data());
+    if(S.me&&!s.metadata.fromCache&&!vByCode(S.me)){S.me=null;ls("ppopgi.me","");S.phoneView="reg";$("#view").innerHTML="";mobKey=""}
+    render();handleHash()},fail);
+  db.collection("draws").limit(1000).onSnapshot(s=>{S.draws=s.docs.map(d=>({id:d.id,...d.data()}));render()},fail);
+}
+
+let hashDone=false;
+function handleHash(){
+  if(hashDone)return;hashDone=true;
+  const h=(location.hash||"").replace("#","");
+  if(h==="reg"){S.mtab="reg";render();return}
+}
+})();
+</script>
+
+</body>
+</html>
