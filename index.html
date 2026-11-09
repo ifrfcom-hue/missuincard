@@ -71,7 +71,8 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 .vitem:hover{border-color:var(--line)}
 .vitem.on{border-color:var(--board);background:#fff0ee}
 .lv{font-family:var(--f-round);font-size:13px;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--ink)}
-.lv.k{background:var(--pink)} .lv.e{background:var(--yellow)} .lv.m{background:var(--sky)}
+.lv.k{background:var(--pink)} .lv.e{background:var(--yellow)} .lv.m{background:var(--sky)} .lv.h{background:var(--mint)}
+.seg.two{grid-template-columns:repeat(2,1fr)}
 .vname{font-family:var(--f-round);font-size:16px;line-height:1.15}
 .vsub{font-size:12px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vmeta{text-align:right;font-size:12px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
@@ -229,7 +230,7 @@ label.f{display:flex;flex-direction:column;gap:5px;font-family:var(--f-round);fo
 
 <div class="wrap" id="app">
   <div class="top">
-    <div class="brand"><h1>AI 체험 뽑기판</h1><span>AI교육 선도학교 · 나주교육박람회</span></div>
+    <div class="brand"><h1>AI 체험 뽑기판</h1><span>청소년미래도전프로젝트 with AI</span></div>
     <div class="chips" id="chips"></div>
     <span class="rolechip" id="roleChip">체험자 화면</span>
     <button class="btn sm" id="roleBtn" type="button" hidden>체험자 화면 보기</button>
@@ -247,19 +248,16 @@ label.f{display:flex;flex-direction:column;gap:5px;font-family:var(--f-round);fo
 (function(){
 "use strict";
 /* ---------- 학교 목록 (나주교육지원청 관내 학교 기준) ---------- */
-const SCHOOLS={
-  k:["나주이화유치원","빛누리유치원","라온유치원","한아름유치원","다야유치원","도담유치원","빛그린유치원",
-     "나주북초등학교병설유치원","영산포초등학교병설유치원","반남초등학교병설유치원",
-     "까리따스성모유치원","동산유치원","한빛유치원","한별유치원"],
-  e:["나주초등학교","나주중앙초등학교","나주북초등학교","영산포초등학교","영강초등학교","세지초등학교","양산초등학교","왕곡초등학교",
-     "반남초등학교","공산초등학교","동강초등학교","다시초등학교","문평초등학교","노안초등학교","노안남초등학교","금천초등학교",
-     "산포초등학교","남평초등학교","다도초등학교","봉황초등학교","빛가람초등학교","한아름초등학교","라온초등학교","빛누리초등학교"],
-  m:["나주중학교","영산포여자중학교","나주금천중학교","나주다시중학교","나주공산중학교","남평중학교","남평중학교다도분교장","나주동강중학교",
-     "나주봉황중학교","나주문평중학교","나주반남중학교","노안중학교","빛가람중학교","매성중학교","금성중학교","영산중학교","세지중학교"]
+/* 전라남도 22개 시·군 중·고등학교 (학교 정보 공시 자료 기준, 2026) */
+const REGIONS={
+  m:{"강진군": ["강진대구중학교", "강진여자중학교", "강진작천중학교", "강진중학교", "강진칠량중학교", "도암중학교", "병영중학교", "성전중학교", "청람중학교"], "고흥군": ["고흥과역중학교", "고흥남양중학교", "고흥대서중학교", "고흥도덕중학교", "고흥도화중학교", "고흥백양중학교", "고흥여자중학교", "고흥점암중앙중학교", "고흥중학교", "고흥풍양중학교", "금산중학교", "녹동중학교", "동강중학교", "봉래중학교", "포두중학교"], "곡성군": ["곡성중학교", "석곡중학교", "옥과중학교"], "광양시": ["광양골약중학교", "광양다압중학교", "광양마동중학교", "광양백운중학교", "광양용강중학교", "광양제철중학교", "광양중동중학교", "광양중학교", "광양진월중학교", "광영중학교", "동광양중학교", "옥곡중학교", "진상중학교", "한국창의예술중학교", "희양중학교"], "구례군": ["구례동중학교", "구례북중학교", "구례산동중학교", "구례여자중학교", "구례중학교"], "나주시": ["금성중학교", "나주공산중학교", "나주금천중학교", "나주다시중학교", "나주동강중학교", "나주문평중학교", "나주반남중학교", "나주봉황중학교", "나주중학교", "남평중학교", "남평중학교 다도분교장", "노안중학교", "매성중학교", "빛가람중학교", "세지중학교", "영산중학교", "영산포여자중학교"], "담양군": ["담양고서중학교", "담양금성중학교", "담양수북중학교", "담양여자중학교", "담양중학교", "창평중학교", "한재중학교"], "목포시": ["목포덕인중학교", "목포애향중학교", "목포여자중학교", "목포영화중학교", "목포옥암중학교", "목포유달중학교", "목포정명여자중학교", "목포제일중학교", "목포중앙여자중학교", "목포청호중학교", "목포하당중학교", "목포항도여자중학교", "목포혜인여자중학교", "목포홍일중학교", "문태중학교", "영흥중학교"], "무안군": ["남악중학교", "망운중학교", "무안몽탄중학교", "무안북중학교", "무안중학교", "무안청계중학교", "무안행복중학교", "무안현경중학교", "무안희망중학교", "오룡중학교", "전남체육중학교", "해제중학교"], "보성군": ["득량중학교", "벌교여자중학교", "벌교중학교", "보성복내중학교", "보성여자중학교", "보성중학교", "보성회천중학교", "삼광중학교", "예당중학교", "용정중학교", "조성중학교"], "순천시": ["순천금당중학교", "순천낙안중학교", "순천남산중학교", "순천동산중학교", "순천매산중학교", "순천별량중학교", "순천삼산중학교", "순천세빛중학교", "순천승남중학교", "순천승주중학교", "순천승평중학교", "순천신흥중학교", "순천연향중학교", "순천왕운중학교", "순천왕의중학교", "순천월전중학교", "순천이수중학교", "순천주암중학교", "순천팔마중학교", "순천풍덕중학교", "순천향림중학교", "한국바둑중학교"], "신안군": ["비금중학교", "신안신의중학교", "신안증도중학교", "신안흑산중학교", "신안흑산중학교 가거도분교장", "안좌중학교", "암태중학교", "압해중학교", "임자중학교", "자은중학교", "장산중학교", "지명중학교", "하의중학교"], "여수시": ["거문중학교", "돌산중앙중학교", "돌산중학교", "무선중학교", "안산중학교", "여남중학교", "여도중학교", "여선중학교", "여수개도중학교", "여수구봉중학교", "여수문수중학교", "여수삼일중학교", "여수아리울중학교", "여수웅천중학교", "여수종고중학교", "여수중앙중학교", "여수중학교", "여수진남중학교", "여수진성중학교", "여양중학교", "여천중학교", "율촌중학교", "충덕중학교", "화양중학교", "화양중학교 화양남분교장"], "영광군": ["법성중학교", "성지송학중학교", "영광군남중학교", "영광대마중학교", "영광백수중학교", "영광염산중학교", "영광옥당중학교", "영광중학교", "영광홍농중학교", "해룡중학교"], "영암군": ["구림중학교", "삼호서중학교", "삼호중학교", "시종중학교", "신북중학교", "영암금정중학교", "영암낭주중학교", "영암도포중학교", "영암서호중학교", "영암여자중학교", "영암중학교"], "완도군": ["고금중학교", "군외중학교", "금당중학교", "금일중학교", "금일중학교 생일분교장", "노화중학교", "노화중학교 넙도분교장", "소안중학교", "약산중학교", "완도보길중학교", "완도신지중학교", "완도여자중학교", "완도중학교", "청산중학교"], "장성군": ["삼계중학교", "장성남중학교", "장성백암중학교", "장성삼서중학교", "장성여자중학교", "장성중학교", "장성황룡중학교"], "장흥군": ["대덕중학교", "장흥관산중학교", "장흥안양중학교", "장흥용산중학교", "장흥유치중학교", "장흥장평중학교", "장흥중학교", "장흥향원중학교", "장흥회덕중학교"], "진도군": ["고성중학교", "석교중학교", "의신중학교", "조도중학교", "진도군내중학교", "진도중학교", "진도지산중학교"], "함평군": ["나산실용예술중학교", "함평손불중학교", "함평신광중학교", "함평여자중학교", "함평월야중학교", "함평중학교", "함평해보중학교"], "해남군": ["두륜중학교", "북평중학교", "산이중학교", "송지중학교", "우수영중학교", "해남제일중학교", "해남중학교", "현산중학교", "화산중학교", "화원중학교", "황산중학교"], "화순군": ["능주중학교", "화순도곡중학교", "화순도암중학교", "화순동면중학교", "화순동복중학교", "화순북면중학교", "화순사평중학교", "화순이양중학교", "화순제일중학교", "화순중학교"]},
+  h:{"강진군": ["강진고등학교", "병영상업고등학교", "성전고등학교", "전남생명과학고등학교"], "고흥군": ["고흥고등학교", "고흥도화고등학교", "고흥산업과학고등학교", "녹동고등학교"], "곡성군": ["곡성고등학교", "옥과고등학교", "전남조리과학고등학교", "한울고등학교"], "광양시": ["광양고등학교", "광양백운고등학교", "광양여자고등학교", "광양제철고등학교", "광양하이텍고등학교", "광영고등학교", "중마고등학교", "한국창의예술고등학교", "한국항만물류고등학교"], "구례군": ["구례고등학교", "전남자연과학고등학교"], "나주시": ["광남고등학교", "금성고등학교", "나주고등학교", "나주공업고등학교", "나주상업고등학교", "매성고등학교", "봉황고등학교", "영산고등학교", "전남과학고등학교", "전남미용고등학교", "전남외국어고등학교", "호남원예고등학교"], "담양군": ["담양고등학교", "담양공업고등학교", "창평고등학교", "한빛고등학교"], "목포시": ["목상고등학교", "목포고등학교", "목포공업고등학교", "목포덕인고등학교", "목포마리아회고등학교", "목포여자고등학교", "목포여자상업고등학교", "목포정명여자고등학교", "목포제일여자고등학교", "목포조리과학고등학교", "목포중앙고등학교", "목포혜인여자고등학교", "목포홍일고등학교", "문태고등학교", "영흥고등학교"], "무안군": ["남악고등학교", "무안고등학교", "백제고등학교", "전남예술고등학교", "전남체육고등학교"], "보성군": ["다향고등학교", "벌교고등학교", "벌교상업고등학교", "벌교여자고등학교", "보성고등학교", "예당고등학교"], "순천시": ["순천강남여자고등학교", "순천고등학교", "순천공업고등학교", "순천금당고등학교", "순천매산고등학교", "순천매산여자고등학교", "순천미래과학고등학교", "순천복성고등학교", "순천여자고등학교", "순천제일고등학교", "순천청암고등학교", "순천팔마고등학교", "순천효산고등학교", "순천효천고등학교", "한국바둑고등학교"], "신안군": ["도초고등학교", "신안해양과학고등학교", "안좌고등학교", "임자고등학교", "지명고등학교", "하의고등학교"], "여수시": ["부영여자고등학교", "여남고등학교", "여수고등학교", "여수공업고등학교", "여수석유화학고등학교", "여수여자고등학교", "여수정보과학고등학교", "여수중앙여자고등학교", "여수충무고등학교", "여수해양과학고등학교", "여수화양고등학교", "여양고등학교", "여천고등학교", "진성여자고등학교", "한영고등학교"], "영광군": ["법성고등학교", "영광고등학교", "영광공업고등학교", "영광전자고등학교", "영산성지고등학교", "해룡고등학교"], "영암군": ["구림공업고등학교", "삼호고등학교", "영암고등학교", "영암낭주고등학교", "영암여자고등학교", "전남에너지고등학교"], "완도군": ["고금고등학교", "노화고등학교", "약산고등학교", "완도고등학교", "완도금일고등학교", "완도수산고등학교"], "장성군": ["문향고등학교", "삼계부사관고등학교", "장성고등학교", "장성하이텍고등학교"], "장흥군": ["장흥고등학교", "장흥관산고등학교", "전남미래자동차고등학교", "한국말산업고등학교"], "진도군": ["조도고등학교", "진도고등학교", "진도국악고등학교", "진도실업고등학교"], "함평군": ["전남보건고등학교", "함평고등학교", "함평골프고등학교", "함평학다리고등학교"], "해남군": ["송지고등학교", "해남고등학교", "해남공업고등학교", "화원고등학교"], "화순군": ["능주고등학교", "전남기술과학고등학교", "화순고등학교", "화순이양고등학교"]}
 };
-SCHOOLS.k.sort((a,b)=>a.localeCompare(b,"ko"));SCHOOLS.e.sort((a,b)=>a.localeCompare(b,"ko"));SCHOOLS.m.sort((a,b)=>a.localeCompare(b,"ko"));
-const LEVEL={k:"유",e:"초",m:"중"}, LEVEL_FULL={k:"유치원",e:"초등학교",m:"중학교"};
-const GRADES={k:["5세반","6세반","7세반"],e:["1학년","2학년","3학년","4학년","5학년","6학년"],m:["1학년","2학년","3학년"]};
+const SCHOOLS={m:Object.values(REGIONS.m).flat(),h:Object.values(REGIONS.h).flat()};
+const regionOf=(lv,school)=>Object.keys(REGIONS[lv]||{}).find(r=>REGIONS[lv][r].includes(school))||"";
+/* 예전 기록(유·초)도 표시는 되도록 남겨 둠 */
+const LEVEL={m:"중",h:"고",k:"유",e:"초"}, LEVEL_FULL={m:"중학교",h:"고등학교",k:"유치원",e:"초등학교"};
+const GRADES={m:["1학년","2학년","3학년"],h:["1학년","2학년","3학년"]};
 const DEFAULT_CFG={
   link:"https://claude.ai/artifact/TK8TYtKCC8XYwmpYQDWDwi",
   tickets:40,
@@ -343,8 +341,8 @@ function wpick(arr){const tot=arr.reduce((a,b)=>a+(+b.w||0),0);if(tot<=0)return 
 
 /* ---------- render: booth ---------- */
 function renderChips(){
-  const n=S.visitors.length, c={k:0,e:0,m:0};S.visitors.forEach(v=>c[v.level]=(c[v.level]||0)+1);
-  $("#chips").innerHTML=`<span class="chip">방문 <b>${n}</b>명</span><span class="chip">유 ${c.k} · 초 ${c.e} · 중 ${c.m}</span><span class="chip">뽑기 <b>${S.draws.length}</b>회</span>`;
+  const n=S.visitors.length, c={k:0,e:0,m:0,h:0};S.visitors.forEach(v=>c[v.level]=(c[v.level]||0)+1);
+  $("#chips").innerHTML=`<span class="chip">방문 <b>${n}</b>명</span><span class="chip">중 ${c.m} · 고 ${c.h}</span><span class="chip">뽑기 <b>${S.draws.length}</b>회</span>`;
   const adm=isAdminView();
   $("#roleChip").textContent=adm?"관리자 화면":"체험자 화면";$("#roleChip").classList.toggle("admin",adm);
   $("#roleBtn").hidden=(!S.isAdmin&&!S.local)||S.mode==="mobile";
@@ -403,7 +401,7 @@ function renderStats(){
   const el=$("#srows");if(!el)return;
   const names=S.cfg.experiences.map(x=>x.name).filter(Boolean);
   S.draws.forEach(d=>{if(d.exp&&!names.includes(d.exp))names.push(d.exp)});
-  const rows=names.map(nm=>{const ds=S.draws.filter(d=>d.exp===nm),lv={k:0,e:0,m:0};
+  const rows=names.map(nm=>{const ds=S.draws.filter(d=>d.exp===nm),lv={k:0,e:0,m:0,h:0};
     ds.forEach(d=>{const v=vByCode(d.code);if(v)lv[v.level]=(lv[v.level]||0)+1});
     return{nm,n:ds.length,done:ds.filter(d=>d.done).length,lv}}).sort((a,b)=>b.n-a.n);
   const max=Math.max(1,...rows.map(r=>r.n)),tot=S.draws.length,td=S.draws.filter(d=>d.done).length;
@@ -412,7 +410,7 @@ function renderStats(){
   el.innerHTML=rows.map(r=>`<div class="srow"><span class="nm" title="${esc(r.nm)}">${esc(r.nm)}</span>
     <span class="num"><b>${r.n}</b>회 <small>완료 ${r.done}</small></span>
     <span class="sbar" role="img" aria-label="뽑힘 ${r.n}회, 완료 ${r.done}회"><i style="width:${r.n/max*100}%"></i><i class="dn" style="width:${r.done/max*100}%"></i></span>
-    <span class="slv">유 ${r.lv.k} · 초 ${r.lv.e} · 중 ${r.lv.m}</span></div>`).join("");
+    <span class="slv">중 ${r.lv.m} · 고 ${r.lv.h}</span></div>`).join("");
 }
 function renderVList(){
   const el=$("#vlist");if(!el)return;
@@ -515,26 +513,38 @@ function dbStatusText(){
 function mountRegForm(host,onDone,init){
   const st={level:null};
   host.innerHTML=`<label class="f"><span>학교급</span></label>
-    <div class="seg" id="lvSeg" style="margin:-6px 0 12px">${["k","e","m"].map(l=>`<button type="button" data-l="${l}" aria-pressed="false">${LEVEL_FULL[l].replace("등학교","").replace("학교","")}</button>`).join("")}</div>
-    <label class="f" for="rSchool"><span>학교</span><select id="rSchool" disabled><option value="">학교급을 먼저 골라 주세요</option></select></label>
-    <label class="f" id="rOtherWrap" hidden for="rOther"><span>학교 이름 직접 입력</span><input id="rOther" placeholder="예: ○○초등학교" autocomplete="off"></label>
+    <div class="seg two" id="lvSeg" style="margin:-6px 0 12px">${["m","h"].map(l=>`<button type="button" data-l="${l}" aria-pressed="false">${LEVEL_FULL[l]}</button>`).join("")}</div>
+    <label class="f" for="rRegion"><span>시·군</span><select id="rRegion" disabled><option value="">학교급을 먼저 골라 주세요</option></select></label>
+    <label class="f" for="rSchool"><span>학교</span><select id="rSchool" disabled><option value="">시·군을 먼저 골라 주세요</option></select></label>
+    <label class="f" id="rOtherWrap" hidden for="rOther"><span>학교 이름 직접 입력</span><input id="rOther" placeholder="예: ○○중학교" autocomplete="off"></label>
     <label class="f" for="rGrade"><span>학년</span><select id="rGrade" disabled><option value="">학교급을 먼저 골라 주세요</option></select></label>
     <label class="f" for="rName"><span>이름</span><input id="rName" placeholder="이름" maxlength="12" autocomplete="off"></label>
     <div class="err" id="rErr"></div>
     <button class="btn red big" id="rGo" type="button">등록하고 입장하기</button>`;
-  const sch=host.querySelector("#rSchool"),gr=host.querySelector("#rGrade"),ow=host.querySelector("#rOtherWrap");
+  const rg=host.querySelector("#rRegion"),sch=host.querySelector("#rSchool"),gr=host.querySelector("#rGrade"),ow=host.querySelector("#rOtherWrap");
+  const fillSchools=()=>{
+    const list=(REGIONS[st.level]||{})[rg.value];
+    if(rg.value==="__other"){sch.disabled=true;sch.innerHTML=`<option value="__other">아래에 직접 입력</option>`;sch.value="__other";ow.hidden=false;return}
+    ow.hidden=true;
+    if(!list){sch.disabled=true;sch.innerHTML=`<option value="">시·군을 먼저 골라 주세요</option>`;return}
+    sch.disabled=false;
+    sch.innerHTML=`<option value="">학교를 골라 주세요 (${list.length}곳)</option>`+list.map(x=>`<option>${esc(x)}</option>`).join("")+`<option value="__other">목록에 없어요 (직접 입력)</option>`;
+  };
   host.querySelectorAll("#lvSeg button").forEach(b=>b.onclick=()=>{
     st.level=b.dataset.l;host.querySelectorAll("#lvSeg button").forEach(x=>x.setAttribute("aria-pressed",x===b));
-    sch.disabled=false;gr.disabled=false;
-    sch.innerHTML=`<option value="">학교를 골라 주세요 (${SCHOOLS[st.level].length}곳)</option>`+SCHOOLS[st.level].map(s=>`<option>${esc(s)}</option>`).join("")+`<option value="__other">목록에 없어요 (직접 입력)</option>`;
+    rg.disabled=false;gr.disabled=false;
+    const regs=Object.keys(REGIONS[st.level]);
+    rg.innerHTML=`<option value="">시·군을 골라 주세요</option>`+regs.map(r=>`<option value="${r}">${r} (${REGIONS[st.level][r].length})</option>`).join("")+`<option value="__other">전남 밖 / 목록에 없어요</option>`;
     gr.innerHTML=`<option value="">학년을 골라 주세요</option>`+GRADES[st.level].map(g=>`<option>${g}</option>`).join("");
-    ow.hidden=true;
+    fillSchools();
   });
+  rg.onchange=fillSchools;
   sch.onchange=()=>{ow.hidden=sch.value!=="__other"};
   if(init){
     const lb=host.querySelector(`#lvSeg button[data-l="${init.level}"]`);if(lb)lb.click();
-    if(SCHOOLS[init.level]&&SCHOOLS[init.level].includes(init.school))sch.value=init.school;
-    else{sch.value="__other";ow.hidden=false;host.querySelector("#rOther").value=init.school||""}
+    const r=REGIONS[init.level]?regionOf(init.level,init.school):"";
+    if(r){rg.value=r;fillSchools();sch.value=init.school}
+    else if(REGIONS[init.level]){rg.value="__other";fillSchools();host.querySelector("#rOther").value=init.school||""}
     gr.value=init.grade||"";host.querySelector("#rName").value=init.name||"";
     host.querySelector("#rGo").textContent="수정 저장";
   }
@@ -543,6 +553,7 @@ function mountRegForm(host,onDone,init){
     let school=sch.value==="__other"?host.querySelector("#rOther").value.trim():sch.value;
     const grade=gr.value,name=host.querySelector("#rName").value.trim();
     if(!st.level)return err.textContent="학교급을 골라 주세요.";
+    if(!rg.value)return err.textContent="시·군을 골라 주세요.";
     if(!school)return err.textContent="학교를 골라 주세요.";
     if(!grade)return err.textContent="학년을 골라 주세요.";
     if(!name)return err.textContent="이름을 적어 주세요.";
