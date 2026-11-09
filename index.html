@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>AI 체험 뽑기판</title>
 <style>html{color-scheme:light}body{margin:0;font-family:system-ui,sans-serif;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
@@ -243,6 +244,7 @@ label.f{display:flex;flex-direction:column;gap:5px;font-family:var(--f-round);fo
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
+<script src="appscript-config.js"></script>
 
 <script>
 (function(){
@@ -342,7 +344,7 @@ function wpick(arr){const tot=arr.reduce((a,b)=>a+(+b.w||0),0);if(tot<=0)return 
 /* ---------- render: booth ---------- */
 function renderChips(){
   const n=S.visitors.length, c={k:0,e:0,m:0,h:0};S.visitors.forEach(v=>c[v.level]=(c[v.level]||0)+1);
-  $("#chips").innerHTML=`<span class="chip">방문 <b>${n}</b>명</span><span class="chip">중 ${c.m} · 고 ${c.h}</span><span class="chip">뽑기 <b>${S.draws.length}</b>회</span>`;
+  $("#chips").innerHTML=`<span class="chip">방문 <b>${n}</b>명</span><span class="chip">중 ${c.m} · 고 ${c.h}</span><span class="chip">뽑기 <b>${S.draws.length}</b>회</span>`+((S.gas||S.fb)?`<span class="chip" style="background:${(S.gasErr||S.fbErr)?"#ffd6d6":"var(--mint)"}">${(S.gasErr||S.fbErr)?"연동 끊김":"실시간 연동 중"}</span>`:"");
   const adm=isAdminView();
   $("#roleChip").textContent=adm?"관리자 화면":"체험자 화면";$("#roleChip").classList.toggle("admin",adm);
   $("#roleBtn").hidden=(!S.isAdmin&&!S.local)||S.mode==="mobile";
@@ -503,6 +505,7 @@ function personalCard(code){
 function dbStatusText(){
   if(!S.ready)return"실시간 연동 준비 중…";
   if(!S.db)return"이 기기는 실시간 연동이 꺼져 있어요. claude.ai에 로그인한 기기로 열어 주세요.";
+  if(S.gas)return S.gasErr?"구글 시트(Apps Script)에 연결하지 못했어요. 배포 액세스가 ‘모든 사용자’인지, appscript-config.js 주소를 확인해 주세요.":"실시간 연동 중(구글 시트) · 모든 기기에 2~3초 안에 반영돼요";
   if(S.fb)return S.fbErr?"Firebase에 연결하지 못했어요. Firestore 규칙과 firebase-config.js를 확인해 주세요.":"실시간 연동 중 · 모든 기기에 바로 반영돼요";
   if(S.local)return"로그인 없이 실행 중 · 기록은 이 기기에만 저장돼요";
   if(!S.canWrite)return"보기 전용 권한이라 등록·뽑기를 저장할 수 없어요. 공유 권한을 ‘기여자’ 이상으로 바꿔 주세요.";
@@ -639,8 +642,11 @@ function openWipe(){
     yes.disabled=true;inp.disabled=true;L.querySelector("[data-close]").disabled=true;
     const ds=[...S.draws],vs=[...S.visitors];let done=0;const tot=ds.length+vs.length;
     try{
+      if(S.db.clearCollections){yes.textContent="지우는 중…";await S.db.clearCollections(["draws","visitors"]);done=tot}
+      else{
       for(const d of ds){await S.db.doc("draws/"+d.id).delete();yes.textContent=`지우는 중… ${++done}/${tot}`}
       for(const v of vs){await S.db.doc("visitors/"+v.code).delete();yes.textContent=`지우는 중… ${++done}/${tot}`}
+      }
       await S.db.doc("state/current").set({code:null,at:Date.now()});
       await resetBoard(1);
       S.q="";toast("전체 초기화했어요 · 1판째부터 새로 시작해요");L.remove();
@@ -698,7 +704,7 @@ async function pickTicket(n){
     if(ex0.exists){toast("방금 다른 기기에서 뽑힌 종이예요");picking=false;return}
     await ref.set(doc);
     showReveal(doc,v);
-  }catch(e){toast(e&&e.code==="quota_exceeded"?"저장 공간이 가득 찼어요":"뽑기를 저장하지 못했어요. 다시 눌러 주세요")}
+  }catch(e){toast(e&&e.code==="already-exists"?"방금 다른 기기에서 뽑힌 종이예요. 다른 종이를 골라 주세요":e&&e.code==="quota_exceeded"?"저장 공간이 가득 찼어요":"뽑기를 저장하지 못했어요. 다시 눌러 주세요")}
   picking=false;
 }
 async function toggleDone(id){
@@ -802,7 +808,61 @@ function firebaseDB(){
   if(!c||!c.projectId||!window.firebase||/여기에/.test(JSON.stringify(c)))return null;
   try{if(!firebase.apps.length)firebase.initializeApp(c);return firebase.firestore()}catch(e){console.error(e);return null}
 }
+/* Apps Script(구글 시트) 저장소 — appscript-config.js의 주소로 2.5초마다 변경 확인 */
+function gasDB(){
+  const url=(window.APPS_SCRIPT_URL||"").trim();
+  if(!/^https?:\/\/\S+$/.test(url))return null;
+  let mem={},ver="",loaded=false,pending=0,busy=false;
+  const dl={},cl={};
+  const parent=p=>p.split("/").slice(0,-1).join("/");
+  const clone=o=>JSON.parse(JSON.stringify(o));
+  const dsnap=p=>{const d=mem[p]?clone(mem[p]):undefined;return{id:p.split("/").pop(),exists:!!d,data:()=>d,metadata:{fromCache:!loaded,hasPendingWrites:pending>0}}};
+  const csnap=c=>{const docs=Object.keys(mem).filter(k=>parent(k)===c).sort().map(dsnap);return{docs,size:docs.length,empty:!docs.length,metadata:{fromCache:!loaded,hasPendingWrites:pending>0}}};
+  const fireAll=()=>{Object.keys(dl).forEach(p=>dl[p].forEach(f=>f(dsnap(p))));Object.keys(cl).forEach(c=>cl[c].forEach(f=>f(csnap(c))))};
+  const notify=p=>setTimeout(()=>{(dl[p]||[]).forEach(f=>f(dsnap(p)));const c=parent(p);(cl[c]||[]).forEach(f=>f(csnap(c)))},0);
+  const sub=(map,k,f,fn)=>{(map[k]=map[k]||new Set()).add(f);setTimeout(()=>f(fn(k)),0);return()=>map[k].delete(f)};
+  const setErr=v=>{if(S.gasErr!==v){S.gasErr=v;render()}};
+  async function pull(force){
+    if(busy||(pending&&!force))return;busy=true;
+    try{
+      const r=await fetch(url+(url.includes("?")?"&":"?")+"since="+encodeURIComponent(force?"":ver)+"&t="+Date.now(),{cache:"no-store"});
+      const j=await r.json();if(!j.ok)throw j;
+      if(!j.unchanged&&!pending){mem=j.docs||{};ver=String(j.ver);loaded=true;fireAll()}
+      else if(!loaded&&j.unchanged){loaded=true}
+      setErr(false);
+    }catch(e){console.error("Apps Script 연결 실패",e);setErr(true)}
+    finally{busy=false}
+  }
+  async function post(body){
+    pending++;
+    try{
+      const r=await fetch(url,{method:"POST",body:JSON.stringify(body)});
+      const j=await r.json();
+      if(!j.ok)throw{code:j.code||"error",message:j.error||j.code};
+      setErr(false);return j;
+    }catch(e){if(!e.code)setErr(true);throw e}
+    finally{pending--;if(!pending){ver="";pull(true)}}
+  }
+  const doc=p=>({id:p.split("/").pop(),path:p,
+    get:async()=>{const r=await fetch(url+(url.includes("?")?"&":"?")+"action=get&path="+encodeURIComponent(p)+"&t="+Date.now(),{cache:"no-store"});
+      const j=await r.json();if(!j.ok)throw{code:j.code};const d=j.data||undefined;return{id:p.split("/").pop(),exists:!!d,data:()=>d,metadata:{fromCache:false}}},
+    set:async d=>{const prev=mem[p];mem[p]=clone(d);notify(p);
+      try{await post({op:p.startsWith("draws/")?"create":"set",path:p,data:d})}catch(e){if(prev)mem[p]=prev;else delete mem[p];notify(p);throw e}},
+    update:async d=>{if(mem[p]){mem[p]={...mem[p],...clone(d)};notify(p)}await post({op:"update",path:p,data:d})},
+    delete:async()=>{delete mem[p];notify(p);await post({op:"delete",path:p})},
+    onSnapshot:f=>sub(dl,p,f,dsnap)});
+  const collection=c=>{const q={limit:()=>q,where:()=>q,orderBy:()=>q,get:async()=>csnap(c),onSnapshot:f=>sub(cl,c,f,csnap),
+    doc:id=>doc(c+"/"+(id||Math.random().toString(36).slice(2,10)))};return q};
+  /* 전체 초기화용: 방문자·뽑기 기록을 한 번에 지움 */
+  const clearCollections=async cols=>{Object.keys(mem).forEach(k=>{if(cols.includes(parent(k)))delete mem[k]});fireAll();await post({op:"clear",collections:cols})};
+  pull(true);
+  setInterval(()=>{if(!document.hidden)pull()},2500);
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)pull()});
+  return{doc,collection,clearCollections};
+}
 (async function connect(){
+  const gdb=gasDB();
+  if(gdb){S.db=gdb;S.local=true;S.gas=true;S.isAdmin=ss("ppopgi.unlock")==="1";S.ready=true;subscribe(gdb);return}
   const fdb=firebaseDB();
   if(fdb){S.db=fdb;S.local=true;S.fb=true;S.isAdmin=ss("ppopgi.unlock")==="1";S.ready=true;subscribe(fdb);return}
   let db=null,user=null;
